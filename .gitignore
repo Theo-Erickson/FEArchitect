@@ -1,0 +1,10 @@
+# OS / editor cruft
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Slice A produces no build output, but reserve these for later tiers
+node_modules/
+base/
+*.gba
+.superpowers/
