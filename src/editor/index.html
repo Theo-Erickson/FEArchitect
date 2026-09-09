@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FEArchitect: 1v1 Preview</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    body { margin: 0; padding: 1rem; }
+    h1 { font-size: 1.1rem; margin: 0 0 0.75rem; }
+    .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+    .panel { border: 1px solid #8888; border-radius: 8px; padding: 0.75rem; }
+    .side { margin-bottom: 1rem; }
+    label { display: flex; justify-content: space-between; gap: 0.5rem; margin: 0.15rem 0; }
+    input[type=number] { width: 5rem; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.25rem 0.75rem; }
+    .bars { display: grid; gap: 2px; }
+    .bar { background: #4a90d9; height: 12px; }
+    .controls { display: flex; gap: 0.5rem; align-items: center; margin: 0.5rem 0; flex-wrap: wrap; }
+    .note { font-size: 0.8rem; opacity: 0.8; margin-top: 1rem; }
+    button { padding: 0.3rem 0.7rem; }
+    .saved { color: #2a2; }
+  </style>
+</head>
+<body>
+  <h1>FEArchitect: 1 player vs 1 enemy math preview</h1>
+  <div class="layout">
+    <div class="panel" id="editor">
+      <div class="controls">
+        <label>Initiator
+          <select id="initiator">
+            <option value="player">Player</option>
+            <option value="enemy">Enemy</option>
+          </select>
+        </label>
+        <button id="save">Save to disk</button>
+        <span id="saveStatus"></span>
+      </div>
+      <div id="playerForm" class="side"></div>
+      <div id="enemyForm" class="side"></div>
+    </div>
+    <div class="panel" id="results">
+      <div class="controls">
+        <label>Seed <input type="number" id="seed" value="42" /></label>
+        <label>Runs <input type="number" id="runs" value="1000" /></label>
+        <button id="reroll">Re-roll seed</button>
+      </div>
+      <div id="deterministic"></div>
+      <div id="montecarlo"></div>
+    </div>
+  </div>
+  <p class="note">
+    This is a math preview. It is authoritative for encounter pacing and
+    difficulty only, not for engine behavior such as animations, menus, skill
+    interactions, or crashes. All math runs locally in your browser.
+  </p>
+  <script type="module" src="/src/editor/client.ts"></script>
+</body>
+</html>
