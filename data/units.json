@@ -1,0 +1,4 @@
+{
+  "eirika-t": { "name": "Eirika", "hp": 24, "str": 9, "mag": 3, "skl": 13, "spd": 15, "lck": 12, "def": 7, "res": 6, "con": 5 },
+  "wyvern-1": { "name": "Wyvern Rider", "hp": 30, "str": 12, "mag": 0, "skl": 8, "spd": 9, "lck": 2, "def": 11, "res": 2, "con": 13 }
+}

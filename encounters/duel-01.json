@@ -1,0 +1,6 @@
+{
+  "id": "duel-01",
+  "notes": "Baseline pipeline proof: Eirika versus a lone Wyvern Rider.",
+  "player": { "unit": "eirika-t", "weapon": "iron-sword" },
+  "enemy":  { "unit": "wyvern-1", "weapon": "iron-lance" }
+}
