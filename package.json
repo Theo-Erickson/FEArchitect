@@ -1,0 +1,7 @@
+{
+  "name": "fearchitect",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "FE8 encounter design sandbox: Tier 1 math preview slice."
+}
