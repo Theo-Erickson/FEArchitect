@@ -20,6 +20,7 @@ export interface WeaponDef {
   hit: number;
   crit: number;
   weight: number;
+  range?: number; // attack range in tiles; defaults to 1 (melee) when absent
 }
 
 export interface UnitDef {
@@ -93,4 +94,10 @@ export interface PreviewResult {
   encounterId: string;
   deterministic: DeterministicReport;
   monteCarlo: MonteCarloReport;
+}
+
+// A terrain tile's contribution to the defender in a matchup.
+export interface TerrainMod {
+  avoid: number;
+  def: number;
 }
