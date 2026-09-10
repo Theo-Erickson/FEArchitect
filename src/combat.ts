@@ -5,7 +5,7 @@
 
 import type {
   Combatant, Matchup, WeaponType,
-  DeterministicReport, MonteCarloReport,
+  DeterministicReport, MonteCarloReport, TerrainMod,
 } from "./types.ts";
 import { MAGIC_TYPES } from "./types.ts";
 import { makeRng, roll2RN, type Rng } from "./rng.ts";
@@ -53,8 +53,13 @@ export function trueHit2RN(displayed: number): number {
   return 100 - ((100 - d) * (100 - d)) / 50;
 }
 
-// Everything one attacker does to one defender in a single matchup.
-export function computeMatchup(attacker: Combatant, defender: Combatant): Matchup {
+// Everything one attacker does to one defender in a single matchup. The
+// defender's terrain contributes avoid and defense; Slice A callers omit it and
+// get zeros, so the Tier 1 preview is unchanged.
+export function computeMatchup(
+  attacker: Combatant, defender: Combatant,
+  defenderTerrain: TerrainMod = { avoid: 0, def: 0 },
+): Matchup {
   const tri = weaponTriangle(attacker.weapon.type, defender.weapon.type);
   const magic = isMagic(attacker.weapon.type);
 
@@ -62,9 +67,9 @@ export function computeMatchup(attacker: Combatant, defender: Combatant): Matchu
   const powerStat = magic ? attacker.unit.mag : attacker.unit.str;
   const attack = attacker.weapon.might + tri.dmgBonus + powerStat;
 
-  // ComputeBattleUnitDefense: res for magic, def otherwise. No terrain in slice A.
+  // ComputeBattleUnitDefense: res for magic, def otherwise, plus terrain defense.
   const defenseStat = magic ? defender.unit.res : defender.unit.def;
-  const damage = Math.max(0, attack - defenseStat);
+  const damage = Math.max(0, attack - (defenseStat + defenderTerrain.def));
 
   // ComputeBattleUnitHitRate: skl*2 + weapon hit + lck/2 + triangle hit.
   const rawHit =
@@ -73,8 +78,8 @@ export function computeMatchup(attacker: Combatant, defender: Combatant): Matchu
     Math.floor(attacker.unit.lck / 2) +
     tri.hitBonus;
 
-  // ComputeBattleUnitAvoidRate: AS*2 + terrain(0) + lck.
-  const defenderAvoid = Math.max(0, attackSpeed(defender) * 2 + defender.unit.lck);
+  // ComputeBattleUnitAvoidRate: AS*2 + terrain avoid + lck.
+  const defenderAvoid = Math.max(0, attackSpeed(defender) * 2 + defender.unit.lck + defenderTerrain.avoid);
 
   // ComputeBattleUnitEffectiveHitRate: hit - avoid, clamped 0..100.
   const displayedHit = clamp(rawHit - defenderAvoid, 0, 100);
@@ -110,11 +115,12 @@ export function buildDeterministic(player: Combatant, enemy: Combatant): Determi
   };
 }
 
-// One strike: roll 2RN to hit, then roll crit, and return damage dealt.
-function strike(m: Matchup, rng: Rng): number {
-  if (!roll2RN(m.displayedHit, rng)) return 0;
+// One strike: roll 2RN to hit, then roll crit. Returns what happened so callers
+// can both apply damage and log the result.
+function strike(m: Matchup, rng: Rng): { hit: boolean; crit: boolean; damage: number } {
+  if (!roll2RN(m.displayedHit, rng)) return { hit: false, crit: false, damage: 0 };
   const crit = rng.next100() < m.displayedCrit;
-  return crit ? m.damage * 3 : m.damage;
+  return { hit: true, crit, damage: crit ? m.damage * 3 : m.damage };
 }
 
 // Simulate one full duel. The player initiates each engagement. Within an
@@ -127,16 +133,16 @@ function simulateDuel(
   let pHp = playerHp;
   let eHp = enemyHp;
   for (let round = 1; round <= cap; round++) {
-    eHp -= strike(pm, rng);
+    eHp -= strike(pm, rng).damage;
     if (eHp <= 0) return { winner: "player", rounds: round };
-    pHp -= strike(em, rng);
+    pHp -= strike(em, rng).damage;
     if (pHp <= 0) return { winner: "enemy", rounds: round };
     if (pm.doubles) {
-      eHp -= strike(pm, rng);
+      eHp -= strike(pm, rng).damage;
       if (eHp <= 0) return { winner: "player", rounds: round };
     }
     if (em.doubles) {
-      pHp -= strike(em, rng);
+      pHp -= strike(em, rng).damage;
       if (pHp <= 0) return { winner: "enemy", rounds: round };
     }
   }
@@ -187,4 +193,58 @@ export function runMonteCarlo(
     averageRounds: decisive === 0 ? 0 : Math.round((decisiveRoundTotal / decisive) * 10) / 10,
     deathRoundHistogram,
   };
+}
+
+export interface ExchangeEvent {
+  attackerId: string;
+  defenderId: string;
+  displayedHit: number;
+  hit: boolean;
+  crit: boolean;
+  damage: number;
+  defenderHpAfter: number;
+}
+
+export interface ExchangeArgs {
+  attacker: Combatant;
+  defender: Combatant;
+  attackerHp: number;
+  defenderHp: number;
+  attackerTerrain?: TerrainMod; // terrain under the attacker (for counters)
+  defenderTerrain?: TerrainMod; // terrain under the defender
+  defenderCanCounter: boolean;  // defender is in range to strike back
+  rng: Rng;
+}
+
+// One combat engagement: attacker strikes, defender counters if able and alive,
+// then either side that doubles strikes again. Returns the event log and the
+// resulting HP totals (floored at 0). Reuses computeMatchup and strike, so the
+// numbers match the Tier 1 preview.
+export function resolveExchange(a: ExchangeArgs): {
+  events: ExchangeEvent[]; attackerHp: number; defenderHp: number;
+} {
+  const zero: TerrainMod = { avoid: 0, def: 0 };
+  const atkM = computeMatchup(a.attacker, a.defender, a.defenderTerrain ?? zero);
+  const defM = computeMatchup(a.defender, a.attacker, a.attackerTerrain ?? zero);
+  let atkHp = a.attackerHp;
+  let defHp = a.defenderHp;
+  const events: ExchangeEvent[] = [];
+
+  const attackerStrike = () => {
+    const r = strike(atkM, a.rng);
+    defHp = Math.max(0, defHp - r.damage);
+    events.push({ attackerId: a.attacker.id, defenderId: a.defender.id, displayedHit: atkM.displayedHit, hit: r.hit, crit: r.crit, damage: r.damage, defenderHpAfter: defHp });
+  };
+  const defenderStrike = () => {
+    const r = strike(defM, a.rng);
+    atkHp = Math.max(0, atkHp - r.damage);
+    events.push({ attackerId: a.defender.id, defenderId: a.attacker.id, displayedHit: defM.displayedHit, hit: r.hit, crit: r.crit, damage: r.damage, defenderHpAfter: atkHp });
+  };
+
+  attackerStrike();
+  if (defHp > 0 && a.defenderCanCounter) defenderStrike();
+  if (defHp > 0 && atkM.doubles) attackerStrike();
+  if (atkHp > 0 && a.defenderCanCounter && defM.doubles) defenderStrike();
+
+  return { events, attackerHp: atkHp, defenderHp: defHp };
 }
