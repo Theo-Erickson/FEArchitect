@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FEArchitect: Skirmish</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    body { margin: 0; padding: 1rem; }
+    h1 { font-size: 1.1rem; margin: 0 0 0.5rem; }
+    .layout { display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap; }
+    .board { border: 1px solid #8888; border-radius: 6px; }
+    .side { width: 320px; }
+    .panel { border: 1px solid #8888; border-radius: 8px; padding: 0.6rem; margin-bottom: 0.6rem; }
+    .controls { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    #log { height: 220px; overflow-y: auto; font-size: 0.8rem; white-space: pre-wrap; }
+    .note { font-size: 0.8rem; opacity: 0.8; }
+    a { font-size: 0.85rem; }
+    button { padding: 0.3rem 0.6rem; }
+  </style>
+</head>
+<body>
+  <h1>FEArchitect: 1v1 skirmish</h1>
+  <a href="/">Back to the stat editor</a>
+  <div class="layout" style="margin-top:0.5rem">
+    <svg id="board" class="board"></svg>
+    <div class="side">
+      <div class="panel controls">
+        <button id="endTurn">End turn</button>
+        <label><input type="checkbox" id="autoPlayer" /> auto play player</label>
+      </div>
+      <div class="panel controls">
+        <label>Seed <input type="number" id="seed" value="1" style="width:6rem" /></label>
+        <button id="reroll">Re-roll</button>
+        <label>Player type
+          <select id="mtype"><option value="">(unit default)</option><option value="foot">foot</option><option value="cav">cavalry</option><option value="fly">flying</option></select>
+        </label>
+      </div>
+      <div class="panel"><strong>Status:</strong> <span id="status">player phase</span></div>
+      <div class="panel"><strong>Combat log</strong><div id="log"></div></div>
+      <p class="note">Math preview, not engine truth: authoritative for pacing and difficulty only, not animations, menus, skills, or crashes.</p>
+    </div>
+  </div>
+  <script type="module" src="/src/game/client.ts"></script>
+</body>
+</html>
