@@ -25,6 +25,13 @@ export function safeConfigPath(p: string): boolean {
   return false;
 }
 
+// Roots the server may read static files from.
+export function staticAllowed(p: string): boolean {
+  if (p.includes("..")) return false;
+  const norm = normalize(p).replace(/\\/g, "/");
+  return ["src/", "data/", "encounters/", "maps/"].some((root) => norm.startsWith(root));
+}
+
 // Convert a TypeScript module to browser ready JavaScript by stripping types.
 // Import specifiers keep their .ts suffix; the server serves those paths too.
 export function toBrowserJs(tsSource: string): string {
@@ -73,11 +80,9 @@ function startServer(): void {
       if (url.pathname === "/") filePath = "src/editor/index.html";
       else filePath = url.pathname.slice(1); // strip leading slash
 
-      // Only allow reading from these roots.
+      // Only allow reading from the known roots.
       const norm = normalize(filePath).replace(/\\/g, "/");
-      const allowed =
-        norm.startsWith("src/") || norm.startsWith("data/") || norm.startsWith("encounters/");
-      if (norm.includes("..") || !allowed) {
+      if (!staticAllowed(norm)) {
         res.writeHead(404); res.end("not found"); return;
       }
 
@@ -90,10 +95,22 @@ function startServer(): void {
     }
   });
 
+  const openPath = process.argv[2] && process.argv[2].startsWith("/") ? process.argv[2] : "/";
+
+  server.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EADDRINUSE") {
+      // A server is already running (for example the editor). Just open the page.
+      console.log(`Server already running, opening ${openPath}`);
+      openBrowser(`http://localhost:${PORT}${openPath}`);
+      process.exit(0);
+    }
+    throw err;
+  });
+
   server.listen(PORT, () => {
-    const target = `http://localhost:${PORT}/`;
-    console.log(`FEArchitect editor running at ${target}`);
-    console.log("Close this window to stop the editor.");
+    const target = `http://localhost:${PORT}${openPath}`;
+    console.log(`FEArchitect running at http://localhost:${PORT}/`);
+    console.log("Close this window to stop the server.");
     openBrowser(target);
   });
 }
