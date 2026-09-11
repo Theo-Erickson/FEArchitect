@@ -1,4 +1,4 @@
-# FEArchitect MCP Server and CLI
+# FEArchitect MCP Server, CLI, and Local Bridge
 
 Date: 2026-09-10
 Status: Approved for planning
@@ -13,7 +13,7 @@ trailer to commits (project owner preference).
 ## 1. Purpose
 
 Give FEArchitect a validated operations layer over its data and its two cheap
-evaluation tiers, exposed two ways:
+evaluation tiers, exposed three ways:
 
 1. An MCP server (stdio, TypeScript) that Claude Code and other MCP clients drive,
    so encounters, units, and weapons can be read, edited with schema validation,
@@ -21,10 +21,14 @@ evaluation tiers, exposed two ways:
 2. A plain CLI over the same logic, so the owner can read, edit, and simulate with
    deterministic commands and zero LLM usage (for example when Claude usage is
    exhausted).
+3. A local bridge that connects a local model (Ollama running Qwen) to the same
+   operations, so the owner can type natural-language edit requests and have a
+   local model compute and apply them, entirely offline and with no cloud usage.
 
-The core logic lives in one place (`mcp/handlers.ts`); the MCP server and the CLI
-are thin frontends over it. There is one source of combat truth: the handlers
-import the existing pure engine (`src/combat.ts`, `src/grid/*`), never a reimplementation.
+The core logic lives in one place (`mcp/handlers.ts`); the MCP server, the CLI,
+and the bridge are thin frontends over it. There is one source of combat truth:
+the handlers import the existing pure engine (`src/combat.ts`, `src/grid/*`),
+never a reimplementation.
 
 ## 2. Success criteria
 
@@ -40,27 +44,53 @@ import the existing pure engine (`src/combat.ts`, `src/grid/*`), never a reimple
    either write the file or return a clear error with the file left unchanged.
 5. The same operations are available from a CLI: `node mcp/cli.ts <command> ...`
    for list, get, preview, simulate, set-unit, set-weapon, set-encounter.
-6. Every handler has a direct unit test. Write tests use a temporary project
-   directory so the real `data/` is never modified by tests.
-7. `src/` outside `mcp/` has no new dependencies. The sim and editor still run
-   with zero dependencies and no build step.
+6. The local bridge (`node mcp/bridge.ts`) connects to Ollama, offers the same
+   operations to the model as tools, and runs a tool-call loop: a natural-language
+   request leads to the right handler calls, the files change, and the model
+   reports back. It checks that Ollama is reachable and fails with a clear message
+   if not.
+7. Every handler has a direct unit test, and the bridge's tool-call loop is tested
+   with a mock model (canned tool calls) so it runs without a live Ollama. Write
+   tests use a temporary project directory so the real `data/` is never modified.
+8. `src/` outside `mcp/` has no new dependencies. The sim and editor still run
+   with zero dependencies and no build step. The bridge adds no dependency of its
+   own (it calls Ollama over HTTP with `fetch`).
 
 ## 3. Scope decisions and rationale
 
 Decided during brainstorming.
 
 - **TypeScript plus the official MCP SDK, quarantined in `mcp/`.** `mcp/` gets its
-  own `package.json` declaring `@modelcontextprotocol/sdk` and `zod`. These are
-  the project's first dependencies, confined to `mcp/`, so `src/`, the sim, and
-  the editor stay zero-dependency. Node 24 runs the server as TypeScript with no
-  build. The server imports the existing pure engine so combat and movement logic
-  is never reimplemented.
+  own `package.json` declaring `@modelcontextprotocol/sdk` (and `zod` only if the
+  chosen SDK version needs it to declare tool input schemas; the preference is the
+  shared plain-JSON-Schema manifest in `toolspecs.ts`, which keeps the dependency
+  count at just the SDK). These are the project's first dependencies, confined to
+  `mcp/`, so `src/`, the sim, and the editor stay zero-dependency. Node 24 runs the
+  server as TypeScript with no build. The server imports the existing pure engine
+  so combat and movement logic is never reimplemented. The bridge adds no
+  dependency: it calls Ollama with `fetch`.
 
-- **Shared handlers plus two thin frontends.** Tool logic lives in `mcp/handlers.ts`
-  as plain async functions `(projectRoot, args) => result`, with no SDK and no zod
-  imports. `mcp/server.ts` wires them to MCP; `mcp/cli.ts` wires them to the
-  command line. This makes the logic testable under plain `node --test` with no
-  dependency install, and gives the owner an LLM-free way to work.
+- **Shared handlers plus three thin frontends.** Tool logic lives in
+  `mcp/handlers.ts` as plain async functions `(projectRoot, args) => result`, with
+  no SDK and no zod imports. `mcp/server.ts` wires them to MCP, `mcp/cli.ts` wires
+  them to the command line, and `mcp/bridge.ts` wires them to a local model. This
+  makes the logic testable under plain `node --test` with no dependency install,
+  and gives the owner both an LLM-free way to work (CLI) and a local-model way
+  (bridge).
+
+- **One shared tool manifest.** The tool definitions (name, description, parameter
+  schema) live in one module, `mcp/toolspecs.ts`, as plain data. The MCP server and
+  the bridge both read it to describe the tools to their respective models, so the
+  two frontends cannot drift. The handlers themselves stay schema-agnostic; they
+  receive already-parsed args and validate through `src/validate.ts`.
+
+- **The bridge talks to Ollama over HTTP, calling handlers in-process.** The bridge
+  does not speak the MCP protocol: locally it just calls `handlers.ts` directly
+  after the model picks a tool, which is simpler and avoids spawning a second
+  process. It posts to Ollama's chat endpoint (`http://localhost:11434/api/chat`)
+  with the tool manifest, runs the tool-call loop, and needs no dependency beyond
+  `fetch`. The model and host are configurable (defaults: model `qwen2.5`, host
+  `http://localhost:11434`).
 
 - **Extract `src/validate.ts`.** The unit, weapon, and encounter validators
   currently inside `src/datagen.ts` move to a new pure `src/validate.ts` that both
@@ -76,12 +106,15 @@ Decided during brainstorming.
 ## 4. Architecture
 
 ```
-                         mcp/handlers.ts  (pure logic, imports src/ engine)
-                         /            \
-           mcp/server.ts               mcp/cli.ts
-           (MCP + zod schemas)         (argv parsing)
-                |                          |
-        MCP client (Claude)         terminal / .cmd / local model
+                    mcp/toolspecs.ts  (shared tool manifest: name, desc, params)
+                               |  (described to models by)
+                    mcp/handlers.ts   (pure logic, imports src/ engine)
+                   /        |         \
+       mcp/server.ts   mcp/cli.ts   mcp/bridge.ts
+       (MCP, stdio)    (argv)       (Ollama tool-call loop)
+            |              |              |
+     MCP client       terminal /     local model
+     (Claude)         .cmd           (Ollama + Qwen)
 ```
 
 The handlers read and write the same JSON files the editor and sim already use
@@ -90,28 +123,31 @@ existing loaders and engine; writes validate in memory first, then write.
 
 All handlers take a `projectRoot` and build absolute paths from it. The existing
 loaders already accept path overrides (`loadBundle`, `loadGridEncounter`), so no
-cwd guessing is needed. `server.ts` and `cli.ts` derive `projectRoot` from their
-own location (the parent of `mcp/`).
+cwd guessing is needed. `server.ts`, `cli.ts`, and `bridge.ts` derive `projectRoot`
+from their own location (the parent of `mcp/`).
 
 ## 5. Repository layout additions
 
 | Path | Responsibility |
 |------|----------------|
-| `mcp/package.json` | ESM, declares `@modelcontextprotocol/sdk` and `zod`. |
-| `mcp/handlers.ts` | The operations as pure async functions. No SDK, no zod. |
-| `mcp/schemas.ts` | zod input schemas for the tools (imported by server.ts). |
-| `mcp/server.ts` | MCP server: registers tools, connects stdio transport. |
+| `mcp/package.json` | ESM, declares `@modelcontextprotocol/sdk` (and `zod` only if that SDK version needs it). |
+| `mcp/toolspecs.ts` | Shared tool manifest: name, description, JSON-Schema params, and which handler each maps to. No SDK. |
+| `mcp/handlers.ts` | The operations as pure async functions `(projectRoot, args) => result`. No SDK. |
+| `mcp/server.ts` | MCP server: registers tools from the manifest, connects stdio transport. |
 | `mcp/cli.ts` | Command-line frontend over the same handlers. |
+| `mcp/bridge.ts` | Local bridge: Ollama tool-call loop over the same handlers. |
 | `mcp/handlers.test.ts` | Direct tests for every handler. |
+| `mcp/bridge.test.ts` | Bridge tool-call loop tested with a mock model (no live Ollama). |
 | `src/validate.ts` | Pure unit/weapon/encounter validators, shared. |
 | `src/datagen.ts` | MODIFY: import validators from `src/validate.ts`. |
 | `.mcp.json` | Project MCP registration for the server. |
-| `Preview (CLI).cmd`, `Simulate.cmd` | Double-click wrappers over `cli.ts`. |
-| `README.md` | MODIFY: an MCP and CLI section. |
+| `Preview (CLI).cmd`, `Simulate.cmd`, `Bridge.cmd` | Double-click wrappers over `cli.ts` and `bridge.ts`. |
+| `README.md` | MODIFY: an MCP, CLI, and local-bridge section. |
 
 ## 6. Operations (tools and CLI commands)
 
-Each is one handler, surfaced as both an MCP tool and a CLI command.
+Each is one handler, surfaced three ways: as an MCP tool, a CLI command, and a
+bridge tool offered to the local model.
 
 - `list(kind)`: ids for `units | weapons | classes | terrain | encounters | maps`.
   Reads the table file, or lists the `encounters/` or `maps/` directory.
@@ -179,6 +215,20 @@ node mcp/cli.ts list encounters
 
 `Preview (CLI).cmd` and `Simulate.cmd` wrap the common commands for double-click use.
 
+Local bridge use, natural language with no cloud or Claude usage:
+
+1. Install Ollama (ollama.com) on the desktop. It serves at `http://localhost:11434`.
+2. Pull a tool-calling model: `ollama pull qwen2.5` (or `qwen2.5-coder:7b`, or a
+   larger tag if the GPU allows). Qwen2.5 supports tool calling, which the loop needs.
+3. Run `Bridge.cmd` (or `node mcp/bridge.ts`). It checks Ollama is reachable, then
+   gives a prompt. Type requests like "raise Eirika's speed to 17 and simulate the
+   skirmish 500 times"; the bridge drives the model, runs the tools, edits the
+   files, and reports the result.
+
+The bridge reads the model and host from optional environment variables
+(`FEA_OLLAMA_MODEL`, `FEA_OLLAMA_HOST`) so a different local model can be used
+without code changes.
+
 ## 9. Testing
 
 - Handlers are tested directly, no transport. `list` and `get` run against the
@@ -191,15 +241,19 @@ node mcp/cli.ts list encounters
   file is unchanged after a rejected write.
 - A test confirms `src/validate.ts` extraction did not change behavior: the Slice A
   and Slice B suites still pass.
+- The bridge's tool-call loop is tested with a mock model: a fake chat function
+  returns a canned `tool_calls` response, and the test asserts the loop invokes the
+  mapped handler with the parsed args, feeds the result back, and terminates on a
+  final no-tool-call message. This runs with no live Ollama. Also a test that the
+  bridge reports a clear error when the Ollama host is unreachable.
 
 ## 10. Out of scope and deferred tracks
 
 - `set_class`, `set_terrain`, `set_map`, and all ROM tools (`build`, `playtest`,
   `port_asset`).
-- Pointing a local model at the server. Noted as a later experiment: the server is
-  model agnostic, and because the CLI and handlers exist, a local-model bridge (a
-  small agent loop against an Ollama or LM Studio endpoint) is a separate small
-  project when wanted.
+- A graphical or streaming chat UI for the bridge. The first bridge is a simple
+  read-a-line, run-the-loop, print-the-answer terminal program. A nicer interface
+  is a later polish item.
 - Asset import (canon unit and weapon numbers, real maps, sprites and portraits,
   and battle animations). This is its own next track and is gated on installing
   the asset toolchain (FEBuilderGBA.CLI, and for animations the AAA pipeline plus
