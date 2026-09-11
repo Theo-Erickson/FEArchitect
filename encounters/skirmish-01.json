@@ -1,0 +1,8 @@
+{
+  "id": "skirmish-01",
+  "map": "showcase-terrain",
+  "notes": "Grid proof: reach the flying Wyvern across terrain.",
+  "player": { "unit": "eirika-t", "weapon": "iron-sword", "at": [1, 3] },
+  "enemy":  { "unit": "wyvern-1", "weapon": "iron-lance", "at": [9, 3], "ai": "aggressive" },
+  "win": "rout"
+}

@@ -1,0 +1,7 @@
+{
+  "plains":   { "name": "Plains",   "moveCost": { "foot": 1, "cav": 1,    "fly": 1 }, "avoid": 0,  "def": 0 },
+  "forest":   { "name": "Forest",   "moveCost": { "foot": 2, "cav": 3,    "fly": 1 }, "avoid": 20, "def": 1 },
+  "mountain": { "name": "Mountain", "moveCost": { "foot": 3, "cav": null, "fly": 1 }, "avoid": 30, "def": 2 },
+  "water":    { "name": "Water",    "moveCost": { "foot": null, "cav": null, "fly": 1 }, "avoid": 0, "def": 0 },
+  "wall":     { "name": "Wall",     "moveCost": { "foot": null, "cav": null, "fly": null }, "avoid": 0, "def": 0 }
+}

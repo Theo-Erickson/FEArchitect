@@ -1,0 +1,5 @@
+{
+  "infantry": { "name": "Infantry", "movementType": "foot", "move": 5 },
+  "cavalier": { "name": "Cavalier", "movementType": "cav",  "move": 7 },
+  "flier":    { "name": "Flier",    "movementType": "fly",  "move": 7 }
+}
