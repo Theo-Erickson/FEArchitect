@@ -44,6 +44,35 @@ The math preview is authoritative for encounter pacing and difficulty only. It i
 not authoritative for engine behavior: animations, menus, skill interactions, and
 crashes are decided by a real ROM build, which is a later tier of this project.
 
+## MCP server, CLI, and local bridge
+
+FEArchitect has a shared operations layer (`mcp/handlers.ts`) exposed three ways.
+
+### CLI (no AI, always available)
+
+Run commands directly, for example:
+
+    node mcp/cli.ts list units
+    node mcp/cli.ts preview duel-01 --seed 42
+    node mcp/cli.ts simulate skirmish-01 --seed 5
+    node mcp/cli.ts set-unit eirika-t str=12 spd=16
+
+Or double-click `Preview (CLI).cmd` and `Simulate.cmd`.
+
+### MCP server (for Claude)
+
+One-time: `cd mcp && npm install`. The repo's `.mcp.json` registers the server,
+so running Claude Code in this folder makes the tools available after you approve
+the server once. Then you can ask in natural language to read, edit, preview, and
+simulate.
+
+### Local bridge (natural language with a local model, no cloud)
+
+One-time: install Ollama (ollama.com) and run `ollama pull qwen2.5`. Then
+double-click `Bridge.cmd` (or `node mcp/bridge.ts`) and type requests like
+"raise Eirika's speed to 17 and simulate the skirmish". Set `FEA_OLLAMA_MODEL` or
+`FEA_OLLAMA_HOST` to use a different model or endpoint.
+
 ## Combat formulas
 
 Ported from the fireemblem8u decomp (`src/bmbattle.c` ComputeBattleUnit

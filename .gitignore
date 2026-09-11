@@ -3,7 +3,8 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 
-# Slice A produces no build output, but reserve these for later tiers
+# Dependencies (the MCP server's node_modules under mcp/ are covered by this too;
+# install once with: cd mcp && npm install)
 node_modules/
 base/
 *.gba
