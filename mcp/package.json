@@ -1,0 +1,10 @@
+{
+  "name": "fearchitect-mcp",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "MCP server exposing FEArchitect data and evaluation tiers.",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}

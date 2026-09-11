@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "fearchitect": {
+      "command": "node",
+      "args": ["--no-warnings", "mcp/server.ts"]
+    }
+  }
+}
