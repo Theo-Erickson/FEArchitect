@@ -17,6 +17,18 @@ Node.js 24 or newer (it runs the TypeScript directly, no build step). Check with
   without opening a browser.
 - Double-click **Test.cmd** to run the test suite.
 
+### Map skirmish (Slice B)
+
+- Double-click **Play Map.cmd** to open the 1v1 tactical grid in your browser.
+  Move your unit within its highlighted range (movement depends on its class and
+  the terrain), click a tile to preview the path, click again to confirm a move,
+  or click an adjacent enemy to attack. Use "End turn" to pass to the enemy, the
+  "Player type" selector to compare foot, cavalry, and flying movement, and
+  "auto play player" to watch the whole fight run itself from the seed.
+
+Grid data lives in `data/terrain.json`, `data/classes.json`, `maps/*.json`, and
+`encounters/skirmish-01.json`.
+
 ## Where the data lives
 
 - `data/units.json`: unit stats.
