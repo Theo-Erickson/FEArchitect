@@ -12,6 +12,7 @@ import {
   type GameState,
 } from "../grid/game.ts";
 import { tileKey, type PathResult } from "../grid/movement.ts";
+import { pathOffsetAt } from "../grid/anim.ts";
 import { terrainSprite, unitSprite, TILE_COLORS } from "../grid/render.ts";
 import { weaponRange, manhattan } from "../grid/range.ts";
 import { decideAction } from "../grid/ai.ts";
@@ -86,8 +87,9 @@ function render(): void {
   svg += `<g id="eUnit">${unitSprite(g.enemy.cls.movementType, g.enemy.pos.x * TILE + TILE / 2, g.enemy.pos.y * TILE + TILE / 2, TILE, g.enemy.hp, "#e0453b")}</g>`;
   boardEl.innerHTML = svg;
 
-  // Keep the player token visually at the previewed tile if a preview stands.
-  if (preview) setOffset("pUnit", preview.to, g.player.pos);
+  // The player token is drawn at its actual tile; the slide animation moves it
+  // to the previewed tile. Do not teleport it here (that caused an instant jump
+  // before the slide).
 
   renderLog();
   const s = status(g);
@@ -204,14 +206,11 @@ function animateUnit(gid: string, path: TileVec[], from: TileVec, done: () => vo
   function frame(now: number): void {
     const el2 = document.getElementById(gid);
     if (!el2) { done(); return; }
-    const elapsed = now - start;
-    const seg = Math.floor(elapsed / stepMs);
-    if (seg >= path.length - 1) { el2.setAttribute("transform", `translate(${(path[path.length - 1].x - from.x) * TILE},${(path[path.length - 1].y - from.y) * TILE})`); done(); return; }
-    const tSeg = (elapsed - seg * stepMs) / stepMs;
-    const a = path[seg], b = path[seg + 1];
-    const dx = ((a.x + (b.x - a.x) * tSeg) - from.x) * TILE;
-    const dy = ((a.y + (b.y - a.y) * tSeg) - from.y) * TILE;
-    el2.setAttribute("transform", `translate(${dx},${dy})`);
+    // pathOffsetAt clamps a possibly-negative elapsed, so it never indexes the
+    // path out of bounds (which previously threw and stalled the whole game).
+    const o = pathOffsetAt(path, from, now - start, stepMs, TILE);
+    el2.setAttribute("transform", `translate(${o.x},${o.y})`);
+    if (o.done) { done(); return; }
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);

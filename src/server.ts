@@ -87,7 +87,9 @@ function startServer(): void {
       }
 
       const { body, type } = await serveFile(norm);
-      res.writeHead(200, { "content-type": type });
+      // No caching: this is a live dev tool, so edits to source, data, and maps
+      // must take effect on the next reload rather than serving a stale module.
+      res.writeHead(200, { "content-type": type, "cache-control": "no-store" });
       res.end(body);
     } catch (e) {
       res.writeHead(500, { "content-type": "text/plain" });
