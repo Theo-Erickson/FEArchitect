@@ -1,6 +1,6 @@
 // Gallery browser client: pick a game, browse Units/Classes/Items as tables or
 // cards, and play battle animations (fetched lazily from the server).
-import { SECTION_LABELS } from "./format.ts";
+import { SECTION_LABELS, idTag } from "./format.ts";
 type Row = Record<string, any>;
 
 let game = "";
@@ -47,22 +47,31 @@ async function render(): Promise<void> {
   const rows = await table(tab);
   const q = search.value.trim().toLowerCase();
   const shown = q ? rows.filter((r) => String(r.name ?? "").toLowerCase().includes(q)) : rows;
-  view.innerHTML = tab === "units" ? unitCards(shown) : recordTable(shown);
+  if (tab === "units") {
+    const classes = await table("classes");
+    const classMap: Record<number, string> = {};
+    for (const c of classes) classMap[c.id] = c.name;
+    view.innerHTML = unitCards(shown, classMap);
+    return;
+  }
+  view.innerHTML = recordTable(shown);
 }
 
 function portraitSrc(id: number): string {
   return `/assets/reference/${game}/portraits/portrait_${String(id).padStart(3, "0")}.png`;
 }
 
-function unitCards(rows: Row[]): string {
-  return `<div class="grid">` + rows.map((u) =>
-    `<div class="card">
+function unitCards(rows: Row[], classMap: Record<number, string>): string {
+  return `<div class="grid">` + rows.map((u) => {
+    const cls = `${classMap[u.ClassID] ?? "class"} ${idTag(u.ClassID)}`;
+    return `<div class="card">
       <img src="${portraitSrc(u.PortraitID ?? 0)}" alt="" onerror="this.style.visibility='hidden'">
       <div><strong>${esc(u.name)}</strong> <span class="note">#${u.id}</span></div>
-      <div>class ${u.ClassID ?? "?"} lvl ${u.Level ?? "?"}</div>
+      <div>${esc(cls)} lvl ${u.Level ?? "?"}</div>
       <div>HP ${u.BaseHP} Pow ${u.BasePow} Skl ${u.BaseSkl} Spd ${u.BaseSpd}</div>
       <div>Def ${u.BaseDef} Res ${u.BaseRes} Lck ${u.BaseLck} Con ${u.BaseCon}</div>
-    </div>`).join("") + `</div>`;
+    </div>`;
+  }).join("") + `</div>`;
 }
 
 // A generic table of the most useful columns for classes/items, name first.
