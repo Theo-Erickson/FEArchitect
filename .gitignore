@@ -9,3 +9,6 @@ node_modules/
 base/
 *.gba
 .superpowers/
+
+# External asset toolchain binaries (FEBuilderGBA.CLI etc.), installed locally, not committed
+tools/febuilder-cli/
