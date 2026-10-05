@@ -9,6 +9,7 @@ import { stripTypeScriptTypes } from "node:module";
 import { extname, join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { staticAllowed, animCacheRel, animArgs, validAnimRequest, GAMES } from "./galleryutil.ts";
+import { animIndex, type AnimEntry } from "./animindex.ts";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");
 const PORT = 5174;
@@ -82,6 +83,35 @@ async function serveAnim(res: any, params: URLSearchParams): Promise<void> {
   res.end(body);
 }
 
+// Map of animation id to the class that uses it, built once per game from the ROM
+// plus the imported classes.json. Lets the Animations tab label ids by class.
+const animMapCache: Record<string, Record<number, AnimEntry>> = {};
+async function animMap(game: string): Promise<Record<number, AnimEntry>> {
+  if (animMapCache[game]) return animMapCache[game];
+  const classesPath = join(ROOT, "assets/reference", game, "classes.json");
+  const rom = romPath(game);
+  if (!existsSync(classesPath) || !existsSync(rom)) return (animMapCache[game] = {});
+  try {
+    const classes = JSON.parse(await readFile(classesPath, "utf8"));
+    const map = animIndex(await readFile(rom), classes);
+    return (animMapCache[game] = map);
+  } catch {
+    return (animMapCache[game] = {});
+  }
+}
+
+async function serveAnimMap(res: any, params: URLSearchParams): Promise<void> {
+  const game = params.get("game") ?? "";
+  if (!(GAMES as readonly string[]).includes(game)) {
+    res.writeHead(400, { "content-type": "application/json" });
+    res.end(JSON.stringify({ error: "bad game" }));
+    return;
+  }
+  const map = await animMap(game);
+  res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
+  res.end(JSON.stringify(map));
+}
+
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url ?? "/", `http://localhost:${PORT}`);
@@ -91,6 +121,7 @@ const server = createServer(async (req, res) => {
       return void res.end(JSON.stringify(importedGames()));
     }
     if (url.pathname === "/anim") return void await serveAnim(res, url.searchParams);
+    if (url.pathname === "/animmap") return void await serveAnimMap(res, url.searchParams);
     await serveStatic(res, url.pathname.slice(1));
   } catch (e) {
     res.writeHead(500, { "content-type": "text/plain" });
