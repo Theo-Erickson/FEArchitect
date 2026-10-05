@@ -94,6 +94,9 @@ One-time setup:
 Then:
 - Double-click **Import Assets.cmd** to import every game whose ROM is present.
 - Double-click **Gallery.cmd** to open the gallery. Pick a game, browse the tabs
-  (Units show class names, Classes and Items have a Cards or Table toggle), and on
-  the Animations tab enter an animation id or step with Prev and Next to see all 12
-  battle sections as labeled GIFs (each is generated on first view and cached).
+  (Units show class names; Classes and Items have a Cards or Table toggle, and in
+  Table view hovering a cell shows the column name, the value, and a decoded reading
+  such as a weapon rank letter). On the Animations tab, search the id picker by
+  class name (each option has a thumbnail) or step with Prev and Next to see all 12
+  battle sections as labeled GIFs, and use Zoom to enlarge the tiles. Each GIF is
+  generated on first view and cached.
