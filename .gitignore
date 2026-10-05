@@ -12,3 +12,5 @@ base/
 
 # External asset toolchain binaries (FEBuilderGBA.CLI etc.), installed locally, not committed
 tools/febuilder-cli/
+# Imported FE asset reference (derived from copyrighted ROMs, not committed)
+assets/reference/
