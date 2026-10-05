@@ -1,14 +1,26 @@
 // Gallery browser client: pick a game, browse Units/Classes/Items as tables or
 // cards, and play battle animations (fetched lazily from the server).
-import { SECTION_LABELS, idTag } from "./format.ts";
+import { SECTION_LABELS, idTag, cellTitle } from "./format.ts";
 type Row = Record<string, any>;
+type AnimEntry = { cls: string; modes: number[] };
 
 let game = "";
 let tab: "units" | "classes" | "items" | "anims" = "units";
 const cache: Record<string, Row[]> = {}; // key `${game}/${table}`
 let currentAnimId = 0; // the animation id shown in the Animations tab
 let animGen = 0;       // bumped each anim render so a stale progressive load stops
+let animScale = 1;     // zoom factor for the section tiles
+const animMaps: Record<string, Record<number, AnimEntry>> = {}; // per-game id -> class
 const viewMode: Record<"classes" | "items", "cards" | "table"> = { classes: "cards", items: "cards" };
+
+// Fetch (once per game) the animation id -> class map used to label the id picker.
+async function ensureAnimMap(g: string): Promise<Record<number, AnimEntry>> {
+  if (!animMaps[g]) {
+    try { animMaps[g] = await fetch(`/animmap?game=${g}`).then((r) => r.json()); }
+    catch { animMaps[g] = {}; }
+  }
+  return animMaps[g];
+}
 
 const $ = (id: string) => document.getElementById(id)!;
 const view = $("view");
@@ -110,36 +122,112 @@ function recordTable(rows: Row[]): string {
   const skip = new Set(["name"]);
   const cols = Object.keys(rows[0]).filter((k) => k !== "id" && !skip.has(k) && !k.endsWith("Pointer") && !k.endsWith("TextID")).slice(0, 12);
   const head = `<tr><th>name</th><th>id</th>` + cols.map((c) => `<th>${esc(c)}</th>`).join("") + `</tr>`;
-  const body = rows.map((r) => `<tr><td>${esc(r.name)}</td><td>${r.id}</td>` + cols.map((c) => `<td>${esc(r[c])}</td>`).join("") + `</tr>`).join("");
+  // Each cell carries a title tooltip: the column name and value, plus a decoded
+  // reading (for example a weapon rank number shown as its letter).
+  const body = rows.map((r) =>
+    `<tr><td title="name: ${esc(r.name)}">${esc(r.name)}</td><td title="id: ${r.id}">${r.id}</td>` +
+    cols.map((c) => `<td title="${esc(cellTitle(c, r[c]))}">${esc(r[c])}</td>`).join("") + `</tr>`).join("");
   return `<table>${head}${body}</table>`;
 }
 
-// Animations tab: an id stepper plus a grid of the 12 sections, each a labeled GIF.
-// The tiles load one at a time so only one CLI export runs at a time, and a stale
-// load (the user stepped to another id) stops when animGen changes.
-function renderAnims(): void {
+// Animations tab: a searchable id picker (each option labeled by class, with a
+// static section-10 thumbnail), a zoom control, and a grid of the 12 sections,
+// each a labeled GIF. Tiles load one at a time so only one CLI export runs at a
+// time, and a stale load (the user stepped to another id) stops when animGen
+// changes.
+async function renderAnims(): Promise<void> {
   const id = currentAnimId;
   const gen = ++animGen;
+  const map = await ensureAnimMap(game);
+  if (gen !== animGen) return; // superseded while the map was fetching
+  const curCls = map[id]?.cls;
   view.innerHTML = `
     <div class="anim">
       <button id="aprev">Prev</button>
-      <label>Animation id <input id="aid" type="number" value="${id}" min="0" style="width:6rem"></label>
+      <div class="combo">
+        <input id="aid" autocomplete="off" placeholder="id or class name"
+               value="${id}${curCls ? ` — ${esc(curCls)}` : ""}">
+        <div id="animdd" class="dropdown" hidden></div>
+      </div>
       <button id="anext">Next</button>
-      <span class="note">First view of an id generates its GIFs, then they are cached.</span>
+      <label>Zoom <input id="azoom" type="range" min="1" max="4" step="0.5" value="${animScale}"></label>
+      <span id="azoomval" class="note">${animScale}x</span>
     </div>
-    <div class="grid" id="secgrid">${SECTION_LABELS.map((lab, s) =>
+    <div class="note" id="acur">${curCls ? `id ${id} — ${esc(curCls)}` : `id ${id} (no class mapped)`} &middot; first view of an id generates its GIFs, then they are cached.</div>
+    <div class="grid secgrid" id="secgrid" style="--anim-scale:${animScale}">${SECTION_LABELS.map((lab, s) =>
       `<div class="card">
         <div><strong>${esc(lab)}</strong> <span class="note">#${s}</span></div>
         <img id="sec_${s}" class="anim-sec" alt="">
         <div class="note" id="secst_${s}">loading...</div>
       </div>`).join("")}</div>`;
 
-  const setId = (v: number) => { currentAnimId = Math.max(0, v); renderAnims(); };
+  const setId = (v: number) => { if (Number.isFinite(v)) { currentAnimId = Math.max(0, v); void renderAnims(); } };
   ($("aprev") as HTMLButtonElement).addEventListener("click", () => setId(currentAnimId - 1));
   ($("anext") as HTMLButtonElement).addEventListener("click", () => setId(currentAnimId + 1));
-  ($("aid") as HTMLInputElement).addEventListener("change", (e) => setId(Number((e.target as HTMLInputElement).value)));
 
+  // Zoom just restyles the grid; it does not reload the GIFs.
+  ($("azoom") as HTMLInputElement).addEventListener("input", (e) => {
+    animScale = Number((e.target as HTMLInputElement).value);
+    ($("secgrid") as HTMLElement).style.setProperty("--anim-scale", String(animScale));
+    $("azoomval").textContent = `${animScale}x`;
+  });
+
+  buildAnimDropdown(map, setId);
   void loadSectionsProgressively(id, gen);
+}
+
+// Wire the searchable id dropdown: a filterable list of `id - class` rows, each
+// with a lazily loaded section-10 thumbnail, plus free-form numeric entry.
+function buildAnimDropdown(map: Record<number, AnimEntry>, setId: (v: number) => void): void {
+  const input = $("aid") as HTMLInputElement;
+  const panel = $("animdd") as HTMLElement;
+  const ids = Object.keys(map).map(Number).sort((a, b) => a - b);
+
+  // One row per mapped id. Icons load only when scrolled into view (see observer).
+  panel.innerHTML = ids.map((aid) =>
+    `<div class="ddrow" data-id="${aid}" data-text="${esc(`${aid} ${map[aid].cls}`.toLowerCase())}">
+      <img class="ddicon" data-anim="${aid}" alt="">
+      <span>${aid} &mdash; ${esc(map[aid].cls)}</span>
+    </div>`).join("") || `<div class="ddrow">no class map for this game</div>`;
+
+  // Lazy-load each row's thumbnail (static section 10) when it becomes visible, so
+  // opening the list does not export every animation at once.
+  const io = new IntersectionObserver((entries, obs) => {
+    for (const en of entries) {
+      if (!en.isIntersecting) continue;
+      const img = en.target as HTMLImageElement;
+      const aid = img.dataset.anim;
+      img.onerror = () => { img.style.visibility = "hidden"; };
+      img.src = `/anim?game=${game}&id=${aid}&section=10`;
+      obs.unobserve(img);
+    }
+  }, { root: panel });
+  for (const img of panel.querySelectorAll<HTMLImageElement>(".ddicon")) io.observe(img);
+
+  const open = () => { panel.hidden = false; };
+  const close = () => { panel.hidden = true; };
+  const filter = () => {
+    const q = input.value.trim().toLowerCase();
+    for (const row of panel.querySelectorAll<HTMLElement>(".ddrow")) {
+      const t = row.dataset.text ?? "";
+      row.hidden = q !== "" && !t.includes(q);
+    }
+    open();
+  };
+
+  input.addEventListener("focus", () => { input.select(); open(); });
+  input.addEventListener("input", filter);
+  // Enter or leaving the field commits a leading number typed directly.
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") { close(); setId(parseInt(input.value, 10)); } });
+  input.addEventListener("blur", () => { setTimeout(close, 150); }); // let a row click land first
+  // mousedown (not click) so it fires before the input blur closes the panel.
+  panel.addEventListener("mousedown", (e) => {
+    const row = (e.target as HTMLElement).closest(".ddrow") as HTMLElement | null;
+    if (!row || !row.dataset.id) return;
+    e.preventDefault();
+    close();
+    setId(Number(row.dataset.id));
+  });
 }
 
 // Load the 12 section GIFs one after another, stopping if a newer render started.

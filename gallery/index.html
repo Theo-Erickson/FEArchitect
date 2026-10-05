@@ -14,6 +14,7 @@
     #vtoggle button.active { font-weight: 700; }
     #search { padding: 0.3rem; width: 14rem; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.5rem; }
+    .secgrid { grid-template-columns: repeat(auto-fill, minmax(calc(150px * var(--anim-scale, 1)), 1fr)); }
     .card { border: 1px solid #8888; border-radius: 6px; padding: 0.4rem; font-size: 0.8rem; }
     .card img { width: 96px; height: 80px; image-rendering: pixelated; display: block; background: #0001; }
     table { border-collapse: collapse; font-size: 0.8rem; }
@@ -21,7 +22,13 @@
     th:first-child, td:first-child { text-align: left; }
     .anim { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
     .anim img { image-rendering: pixelated; border: 1px solid #8888; min-width: 64px; min-height: 64px; }
-    .anim-sec { image-rendering: pixelated; max-width: 120px; height: auto; display: block; margin-top: 4px; background: #0001; }
+    .anim-sec { image-rendering: pixelated; max-width: calc(120px * var(--anim-scale, 1)); height: auto; display: block; margin-top: 4px; background: #0001; }
+    .combo { position: relative; display: inline-block; }
+    #aid { width: 15rem; padding: 0.3rem; }
+    .dropdown { position: absolute; z-index: 10; top: 100%; left: 0; width: 20rem; max-height: 320px; overflow-y: auto; background: Canvas; border: 1px solid #8888; border-radius: 6px; margin-top: 2px; }
+    .ddrow { display: flex; align-items: center; gap: 0.5rem; padding: 3px 6px; cursor: pointer; font-size: 0.85rem; }
+    .ddrow:hover, .ddrow.sel { background: #8883; }
+    .ddicon { width: 48px; height: 32px; object-fit: contain; image-rendering: pixelated; background: #0001; flex: none; }
     .note { font-size: 0.85rem; opacity: 0.85; }
     [hidden] { display: none !important; }
   </style>
