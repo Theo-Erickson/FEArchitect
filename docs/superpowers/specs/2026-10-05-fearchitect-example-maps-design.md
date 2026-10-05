@@ -202,6 +202,21 @@ this spec, but the extraction above is shaped so they drop in cleanly later:
 - **Map change overlays** (fog, destroyed walls, mid-chapter changes) and the
   unified ROM asset install remain later tracks.
 
+### North star: authoring, assisted by the MCP
+
+The end intention is editing, not just viewing. Eventually FEArchitect should let
+the owner edit a map, and edit a scenario (which units start where, what events fire
+on which turn, and which map it plays on), with the MCP as the authoring assistant
+("add three archers on the east ridge on turn 3", "make this a defend map"). This
+read-only extraction is step 1: it proves we can read maps, placements, and events
+faithfully. The write path (the CLI has `--import-asset`, `--import-data`, and
+`--compile-event` for map, data, and event write-back) and an MCP authoring surface
+are their own large tracks after reading is solid. The data shapes here (a per-chapter
+record of map, placements, and later events) are chosen to be the same shapes an
+editor and the MCP will read and write, so authoring builds on this rather than
+replacing it. We do not build any of the write path now (YAGNI), only keep the read
+model editing-friendly.
+
 ## 10. Risks
 
 - The chapter record decode (Component 1) is the gating unknown. Mitigation: it is
