@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FEArchitect: Asset Gallery</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    body { margin: 0; padding: 1rem; }
+    h1 { font-size: 1.1rem; margin: 0 0 0.5rem; }
+    .bar { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.75rem; }
+    .tabs button { padding: 0.3rem 0.7rem; margin-right: 0.25rem; }
+    .tabs button.active { font-weight: 700; }
+    #search { padding: 0.3rem; width: 14rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.5rem; }
+    .card { border: 1px solid #8888; border-radius: 6px; padding: 0.4rem; font-size: 0.8rem; }
+    .card img { width: 96px; height: 80px; image-rendering: pixelated; display: block; background: #0001; }
+    table { border-collapse: collapse; font-size: 0.8rem; }
+    th, td { border: 1px solid #8884; padding: 2px 6px; text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+    .anim { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+    .anim img { image-rendering: pixelated; border: 1px solid #8888; min-width: 64px; min-height: 64px; }
+    .note { font-size: 0.85rem; opacity: 0.85; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <h1>FEArchitect asset gallery</h1>
+  <div class="bar">
+    <label>Game <select id="game"></select></label>
+    <span class="tabs" id="tabs">
+      <button data-tab="units" class="active">Units</button>
+      <button data-tab="classes">Classes</button>
+      <button data-tab="items">Items</button>
+      <button data-tab="anims">Animations</button>
+    </span>
+    <input id="search" placeholder="search by name" />
+  </div>
+  <div id="empty" class="note" hidden>No imported data. Run <strong>Import Assets.cmd</strong> first.</div>
+  <div id="view"></div>
+  <script type="module" src="/gallery/client.ts"></script>
+</body>
+</html>
