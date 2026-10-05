@@ -1,10 +1,13 @@
 // Gallery browser client: pick a game, browse Units/Classes/Items as tables or
 // cards, and play battle animations (fetched lazily from the server).
+import { SECTION_LABELS } from "./format.ts";
 type Row = Record<string, any>;
 
 let game = "";
 let tab: "units" | "classes" | "items" | "anims" = "units";
 const cache: Record<string, Row[]> = {}; // key `${game}/${table}`
+let currentAnimId = 0; // the animation id shown in the Animations tab
+let animGen = 0;       // bumped each anim render so a stale progressive load stops
 
 const $ = (id: string) => document.getElementById(id)!;
 const view = $("view");
@@ -72,25 +75,47 @@ function recordTable(rows: Row[]): string {
   return `<table>${head}${body}</table>`;
 }
 
+// Animations tab: an id stepper plus a grid of the 12 sections, each a labeled GIF.
+// The tiles load one at a time so only one CLI export runs at a time, and a stale
+// load (the user stepped to another id) stops when animGen changes.
 function renderAnims(): void {
+  const id = currentAnimId;
+  const gen = ++animGen;
   view.innerHTML = `
     <div class="anim">
-      <label>Animation id <input id="aid" type="number" value="0" min="0" style="width:6rem"></label>
-      <label>Section <select id="asec">${Array.from({ length: 12 }, (_, i) => `<option value="${i}">${i}</option>`).join("")}</select></label>
-      <button id="aplay">Play</button>
-      <span id="astatus" class="note"></span>
+      <button id="aprev">Prev</button>
+      <label>Animation id <input id="aid" type="number" value="${id}" min="0" style="width:6rem"></label>
+      <button id="anext">Next</button>
+      <span class="note">First view of an id generates its GIFs, then they are cached.</span>
     </div>
-    <div style="margin-top:0.75rem"><img id="agif" alt=""></div>`;
-  const play = () => {
-    const id = Number(($("aid") as HTMLInputElement).value);
-    const sec = Number(($("asec") as HTMLSelectElement).value);
-    const img = $("agif") as HTMLImageElement;
-    $("astatus").textContent = "exporting...";
-    img.onload = () => { $("astatus").textContent = `id ${id} section ${sec}`; };
-    img.onerror = () => { $("astatus").textContent = "export failed for that id/section"; img.removeAttribute("src"); };
-    img.src = `/anim?game=${game}&id=${id}&section=${sec}&_=${Date.now()}`;
-  };
-  $("aplay").addEventListener("click", play);
+    <div class="grid" id="secgrid">${SECTION_LABELS.map((lab, s) =>
+      `<div class="card">
+        <div><strong>${esc(lab)}</strong> <span class="note">#${s}</span></div>
+        <img id="sec_${s}" class="anim-sec" alt="">
+        <div class="note" id="secst_${s}">loading...</div>
+      </div>`).join("")}</div>`;
+
+  const setId = (v: number) => { currentAnimId = Math.max(0, v); renderAnims(); };
+  ($("aprev") as HTMLButtonElement).addEventListener("click", () => setId(currentAnimId - 1));
+  ($("anext") as HTMLButtonElement).addEventListener("click", () => setId(currentAnimId + 1));
+  ($("aid") as HTMLInputElement).addEventListener("change", (e) => setId(Number((e.target as HTMLInputElement).value)));
+
+  void loadSectionsProgressively(id, gen);
+}
+
+// Load the 12 section GIFs one after another, stopping if a newer render started.
+async function loadSectionsProgressively(id: number, gen: number): Promise<void> {
+  for (let s = 0; s < 12; s++) {
+    if (gen !== animGen) return;
+    const img = document.getElementById(`sec_${s}`) as HTMLImageElement | null;
+    const status = document.getElementById(`secst_${s}`);
+    if (!img || !status) return;
+    await new Promise<void>((resolve) => {
+      img.onload = () => { status.textContent = ""; resolve(); };
+      img.onerror = () => { status.textContent = "none"; img.removeAttribute("src"); resolve(); };
+      img.src = `/anim?game=${game}&id=${id}&section=${s}&_=${Date.now()}`;
+    });
+  }
 }
 
 boot();
