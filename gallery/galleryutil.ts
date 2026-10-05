@@ -18,6 +18,16 @@ export function animArgs(rom: string, id: number, section: number, out: string):
   return [`--rom=${rom}`, "--export-battle-anime", `--animation-id=${id}`, "--gif", `--section=${section}`, `--out=${out}`];
 }
 
+// Every (id, section) pair to export when pre-caching a set of animation ids.
+// Sections are 0..sectionCount-1 (12 by default), the same range the gallery shows.
+export function animTargets(ids: number[], sectionCount = 12): { id: number; section: number }[] {
+  const out: { id: number; section: number }[] = [];
+  for (const id of ids) {
+    for (let section = 0; section < sectionCount; section++) out.push({ id, section });
+  }
+  return out;
+}
+
 export function validAnimRequest(game: string, id: number, section: number): boolean {
   if (!(GAMES as readonly string[]).includes(game)) return false;
   if (!Number.isInteger(id) || id < 0) return false;

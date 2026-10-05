@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { staticAllowed, animCacheRel, animArgs, validAnimRequest } from "./galleryutil.ts";
+import { staticAllowed, animCacheRel, animArgs, animTargets, validAnimRequest } from "./galleryutil.ts";
 
 test("staticAllowed permits gallery and reference, rejects traversal", () => {
   assert.equal(staticAllowed("gallery/index.html"), true);
@@ -20,6 +20,12 @@ test("animArgs builds the CLI argument list", () => {
     animArgs("/base/FE8.gba", 5, 1, "/out/5_1.gif"),
     ["--rom=/base/FE8.gba", "--export-battle-anime", "--animation-id=5", "--gif", "--section=1", "--out=/out/5_1.gif"],
   );
+});
+
+test("animTargets expands ids into every section pair", () => {
+  assert.deepEqual(animTargets([5], 2), [{ id: 5, section: 0 }, { id: 5, section: 1 }]);
+  assert.equal(animTargets([1, 2, 3]).length, 36); // 3 ids x 12 sections
+  assert.deepEqual(animTargets([], 12), []);
 });
 
 test("validAnimRequest checks game, id, section ranges", () => {
