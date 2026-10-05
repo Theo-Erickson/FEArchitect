@@ -474,6 +474,7 @@ import { createServer } from "node:http";
 import { readFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { stripTypeScriptTypes } from "node:module";
 import { extname, join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { staticAllowed, animCacheRel, animArgs, validAnimRequest, GAMES } from "./galleryutil.ts";
@@ -507,9 +508,18 @@ function importedGames(): string[] {
 async function serveStatic(res: any, rel: string): Promise<void> {
   if (!staticAllowed(rel)) { res.writeHead(404); res.end("not found"); return; }
   const abs = join(ROOT, rel);
+  const ext = extname(abs);
   try {
+    // Browsers cannot run TypeScript, so strip the types when serving a .ts
+    // module to the browser (same approach as the sim server).
+    if (ext === ".ts") {
+      const src = await readFile(abs, "utf8");
+      res.writeHead(200, { "content-type": CONTENT_TYPES[".ts"], "cache-control": "no-store" });
+      res.end(stripTypeScriptTypes(src, { mode: "strip" }));
+      return;
+    }
     const body = await readFile(abs);
-    res.writeHead(200, { "content-type": CONTENT_TYPES[extname(abs)] ?? "application/octet-stream", "cache-control": "no-store" });
+    res.writeHead(200, { "content-type": CONTENT_TYPES[ext] ?? "application/octet-stream", "cache-control": "no-store" });
     res.end(body);
   } catch {
     res.writeHead(404); res.end("not found");
