@@ -269,7 +269,7 @@ verified by running it against the real FE8 ROM in Step 3.
 // and all portraits via FEBuilderGBA.CLI, normalize the data, and write everything
 // under assets/reference/<game>/. Run directly: node tools/assetgen/import.ts
 import { spawnSync } from "node:child_process";
-import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
+import { readFile, writeFile, mkdir, rm, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -279,11 +279,15 @@ import { normalizeTable } from "./normalize.ts";
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "../..");
 const TABLES = ["units", "classes", "items"] as const;
 
-function runCli(args: string[]): void {
+// Run the CLI. Data exports must exit 0. The portrait export can exit nonzero
+// when some individual portraits fail to render ("render returned null") while
+// still producing most PNGs, so the portrait caller passes tolerateNonzero and
+// separately confirms that output was produced.
+function runCli(args: string[], tolerateNonzero = false): void {
   const cli = cliPath(ROOT);
   const res = spawnSync(cli, args, { encoding: "utf8" });
   if (res.error) throw new Error(`Failed to run ${cli}: ${res.error.message}`);
-  if (res.status !== 0) {
+  if (!tolerateNonzero && res.status !== 0) {
     throw new Error(`CLI exited ${res.status}: ${(res.stderr || res.stdout || "").trim()}`);
   }
 }
@@ -291,7 +295,8 @@ function runCli(args: string[]): void {
 async function importGame(game: Game): Promise<void> {
   const gdir = gameDir(ROOT, game);
   const rom = romPath(ROOT, game);
-  await mkdir(join(gdir, "portraits"), { recursive: true });
+  const portraitsDir = join(gdir, "portraits");
+  await mkdir(portraitsDir, { recursive: true });
 
   for (const table of TABLES) {
     const rawPath = join(gdir, `.raw-${table}.json`);
@@ -302,8 +307,12 @@ async function importGame(game: Game): Promise<void> {
     console.log(`  ${game}: ${table} imported`);
   }
 
-  runCli([`--rom=${rom}`, "--export-portrait-all", `--out=${join(gdir, "portraits")}`]);
-  console.log(`  ${game}: portraits imported`);
+  // Portraits: tolerate a nonzero exit from partial render failures, then
+  // confirm at least one PNG was produced.
+  runCli([`--rom=${rom}`, "--export-portrait-all", `--out=${portraitsDir}`], true);
+  const pngs = (await readdir(portraitsDir)).filter((f) => f.endsWith(".png"));
+  if (pngs.length === 0) throw new Error(`${game}: no portraits were exported`);
+  console.log(`  ${game}: portraits imported (${pngs.length})`);
 }
 
 async function main(): Promise<void> {
