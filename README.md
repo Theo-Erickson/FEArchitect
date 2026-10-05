@@ -79,3 +79,20 @@ Ported from the fireemblem8u decomp (`src/bmbattle.c` ComputeBattleUnit
 functions and `include/bmbattle.h`), including the two random number (2RN) hit
 model and the attack speed difference of 4 needed to double. See comments in
 `src/combat.ts` and `src/rng.ts` for the exact citations.
+
+## FE asset gallery
+
+Browse the GBA Fire Emblem canon (units, classes, items, portraits, battle
+animations) imported from your clean ROMs.
+
+One-time setup:
+- Install the `FEBuilderGBA.CLI` (laqieer fork release, the `cli-win-x64` asset)
+  into `tools/febuilder-cli/`.
+- Place clean ROMs in `base/`: `FE8_Clean.gba`, and optionally `FE6_clean.gba`
+  and `FE7_clean.gba`. These and the imported assets are gitignored.
+
+Then:
+- Double-click **Import Assets.cmd** to import every game whose ROM is present.
+- Double-click **Gallery.cmd** to open the gallery. Pick a game, browse the tabs,
+  and on the Animations tab enter an animation id and press Play (the GIF is
+  generated on first view and cached).
