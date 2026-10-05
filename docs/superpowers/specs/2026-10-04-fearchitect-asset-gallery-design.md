@@ -12,12 +12,17 @@ trailer to commits (project owner preference).
 
 ## 1. Purpose
 
-Let the owner browse the FE8 canon, units, classes, items, portraits, and battle
-animations, imported from a clean FE8 ROM through `FEBuilderGBA.CLI`. The gallery
-is a read-only reference. It stays separate from the sim's curated hand-authored
-data so the clean `data/*.json` and encounters are never flooded with 255 canon
-entries. Mapping a specific canon unit or class into the sim model is a later,
-focused follow-up, out of scope here.
+Let the owner browse GBA Fire Emblem canon, units, classes, items, portraits, and
+battle animations, imported from clean ROMs through `FEBuilderGBA.CLI`. The gallery
+covers all three GBA titles the tool supports: FE6, FE7, and FE8, chosen with a
+game selector. The gallery is a read-only reference. It stays separate from the
+sim's curated hand-authored data so the clean `data/*.json` and encounters are
+never flooded with hundreds of canon entries.
+
+Two things are explicitly out of scope and become their own later tracks: mapping
+a specific canon unit or class into the sim model (the follow-up after the
+gallery), and porting assets across games into a single unified ROM build (the
+Tier 3 asset-porting track, see section 11).
 
 ## 2. Context already established
 
@@ -39,23 +44,32 @@ brainstorming:
     handoff's highest-risk step: viewing animations needs no AAA, no ROM build,
     and no frame-format parsing.
 
+FE6 and FE7 use the same commands; the CLI supports `--force-version FE6`,
+`FE7J`, `FE7U`, `FE8J`, `FE8U`, and auto-detects version from the ROM header. FE6
+and FE7 export is expected to work the same way but was not yet verified here,
+since only the FE8 ROM is present. It is verified during implementation once their
+clean ROMs are placed, and the gallery simply omits any game whose ROM is absent.
+
 ## 3. Success criteria
 
-1. Double-clicking `Import Assets.cmd` runs the CLI against `base/FE8_Clean.gba`
-   and writes `assets/reference/{units,classes,items}.json` plus
-   `assets/reference/portraits/*.png`. It fails with a clear message if the CLI or
-   the ROM is missing.
+1. Double-clicking `Import Assets.cmd` imports every game whose clean ROM is
+   present (`base/FE8_Clean.gba`, and `base/FE6_clean.gba` / `base/FE7_clean.gba`
+   if placed), writing per-game `assets/reference/<game>/{units,classes,items}.json`
+   plus `assets/reference/<game>/portraits/*.png`. It skips an absent game and
+   fails with a clear message only if the CLI is missing or no ROM is found.
 2. The normalized JSON has integer fields (hex strings parsed) and, for units,
    separate `id` and `name` fields split from the raw `Index`.
-3. Double-clicking `Gallery.cmd` opens a local web gallery with four tabs: Units,
-   Classes, Items, Animations.
+3. Double-clicking `Gallery.cmd` opens a local web gallery with a game selector
+   (only games with imported data are offered) and four tabs: Units, Classes,
+   Items, Animations.
 4. Units tab shows each unit's portrait, name, class, base stats, growths, and
    weapon ranks, and is text-searchable.
 5. Classes and Items tabs show their records in readable tables.
 6. The Animations tab lets the owner pick an animation id and section and plays
-   the GIF. The GIF is produced on demand by the gallery server, cached under
-   `assets/reference/anims/`, and served instantly on repeat views.
-7. `assets/reference/` is gitignored (it derives from the copyrighted ROM).
+   the GIF for the selected game. The GIF is produced on demand by the gallery
+   server, cached under `assets/reference/<game>/anims/`, and served instantly on
+   repeat views.
+7. `assets/reference/` is gitignored (it derives from the copyrighted ROMs).
 8. The sim, editor, and MCP server are unchanged and still pass their tests. The
    gallery and import runner add no npm dependency.
 
@@ -64,15 +78,18 @@ brainstorming:
 Two cooperating pieces over a one-way flow from the ROM:
 
 ```
-base/FE8_Clean.gba  +  tools/febuilder-cli/FEBuilderGBA.CLI.exe
+base/<game>_clean.gba  +  tools/febuilder-cli/FEBuilderGBA.CLI.exe
         |                              |
-        v  (tools/assetgen/import.ts runs the CLI)
-  assets/reference/{units,classes,items}.json  (normalized)
-  assets/reference/portraits/*.png             (bulk, once)
+        v  (tools/assetgen/import.ts runs the CLI per present game)
+  assets/reference/<game>/{units,classes,items}.json  (normalized)
+  assets/reference/<game>/portraits/*.png             (bulk, once)
         |
         v  (gallery/ server serves these; lazily generates anim GIFs)
-  gallery web app  <-- /anim?id=N&section=S  runs CLI, caches to anims/
+  gallery web app  <-- /anim?game=G&id=N&section=S  runs CLI, caches to <game>/anims/
 ```
+
+`<game>` is one of `fe6`, `fe7`, `fe8`. The import runner discovers which games
+have a ROM and imports each; the gallery offers only the games it finds imported.
 
 - The **import runner** (`tools/assetgen/`) is the only writer of
   `assets/reference/`. It shells out to the CLI for data and portraits, and
@@ -85,15 +102,18 @@ base/FE8_Clean.gba  +  tools/febuilder-cli/FEBuilderGBA.CLI.exe
 - No npm dependencies: Node standard library only, same as the sim server. Node 24
   runs the TypeScript directly.
 
-The CLI path (`tools/febuilder-cli/FEBuilderGBA.CLI.exe`) and ROM path
-(`base/FE8_Clean.gba`) are resolved from the project root, with environment
-overrides (`FEA_FEBUILDER_CLI`, `FEA_FE8_ROM`) for a different location.
+The CLI path (`tools/febuilder-cli/FEBuilderGBA.CLI.exe`) and the per-game ROM
+paths are resolved from the project root, with environment overrides
+(`FEA_FEBUILDER_CLI`, and `FEA_FE6_ROM` / `FEA_FE7_ROM` / `FEA_FE8_ROM`) for
+different locations. The expected ROM filenames are `base/FE6_clean.gba`,
+`base/FE7_clean.gba`, and `base/FE8_Clean.gba`; version is confirmed from the ROM
+header, with `--force-version` passed when a game needs it.
 
 ## 5. Repository layout additions
 
 | Path | Responsibility |
 |------|----------------|
-| `tools/assetgen/paths.ts` | Resolve CLI path, ROM path, and the reference dir from the project root plus env overrides. Pure given its inputs. |
+| `tools/assetgen/paths.ts` | Resolve the CLI path, the per-game ROM paths (fe6/fe7/fe8), and the per-game reference dir from the project root plus env overrides; report which games have a ROM. Pure given its inputs. |
 | `tools/assetgen/normalize.ts` | Pure normalization: parse hex strings to integers, split `Index` into id and name, shape each table into the gallery's reference records. |
 | `tools/assetgen/normalize.test.ts` | Tests for normalization with sample raw rows. |
 | `tools/assetgen/import.ts` | The runner: invoke the CLI for data and portraits, normalize, write `assets/reference/`. Fails loudly on a missing CLI or ROM. |
@@ -141,9 +161,9 @@ them for v1.
 
 ## 7. Portraits
 
-`--export-portrait-all` writes PNGs into `assets/reference/portraits/`. The exact
-filename scheme (for example `{id}_{name}.png` or `{id}.png`) is read from the
-tool's output during implementation, and the normalizer records, per unit, the
+`--export-portrait-all` writes PNGs into `assets/reference/<game>/portraits/`. The
+exact filename scheme (for example `{id}_{name}.png` or `{id}.png`) is read from
+the tool's output during implementation, and the normalizer records, per unit, the
 portrait filename to display. A unit whose portrait is missing shows a neutral
 placeholder rather than a broken image.
 
@@ -153,9 +173,9 @@ The gallery server owns animation generation.
 
 - The Animations tab has an animation id input (0 based) and a section selector
   (0 to 11, default 0), and a Play control.
-- Requesting an anim calls `/anim?id=N&section=S`. The server checks the cache at
-  `assets/reference/anims/<id>_<section>.gif`. On a miss it runs
-  `FEBuilderGBA.CLI --rom=<rom> --export-battle-anime --animation-id=N --gif
+- Requesting an anim calls `/anim?game=G&id=N&section=S`. The server checks the
+  cache at `assets/reference/<game>/anims/<id>_<section>.gif`. On a miss it runs
+  `FEBuilderGBA.CLI --rom=<game rom> --export-battle-anime --animation-id=N --gif
   --section=S --out=<cache file>`, then serves the file. Errors (bad id, CLI
   failure) return a clear message the tab shows, not a crash.
 - Ids are browsed by stepping the input. If an id is invalid the tab shows the
@@ -188,8 +208,16 @@ The gallery server owns animation generation.
 
 ## 11. Out of scope
 
+- **Unified-ROM asset porting (the named next big track).** Taking a class, a
+  portrait, or a battle animation from FE6 or FE7 and installing it into an
+  FE8-based ROM to build a single unified hack. This is the Tier 3 asset-porting
+  and ROM-build world: FEBuilder's import commands (`--import-data`,
+  `--import-portrait`, `--import-battle-anime`) or the Skill System buildfile plus
+  Event Assembler and, for animations, the AAA pipeline. It also reopens the
+  git-source-of-truth decision (buildfile versus editing a ROM in place). It gets
+  its own spec after the gallery, and the multi-game gallery is the groundwork for
+  it: you browse all three games and pick what to port.
 - Mapping canon units or classes into the sim's data model (the Pow to str and mag
-  split, movement type inference). This is the focused follow-up after the gallery.
-- Map import, importing portraits or animations back into a ROM, and pre-exporting
-  all 12 sections of every animation.
+  split, movement type inference). The focused follow-up after the gallery.
+- Map import, and pre-exporting all 12 sections of every animation.
 - Any change to the sim, the editor, or the MCP server.
