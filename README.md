@@ -100,3 +100,7 @@ Then:
   class name (each option has a thumbnail) or step with Prev and Next to see all 12
   battle sections as labeled GIFs, and use Zoom to enlarge the tiles. Each GIF is
   generated on first view and cached.
+- Double-click **Cache Animations.cmd** (optional) to pre-generate every battle
+  animation up front so the Animations tab is instant. It is safe to re-run: it
+  skips anything already cached. The cache lives under `assets/reference/` and is
+  gitignored.
