@@ -8,6 +8,7 @@ let tab: "units" | "classes" | "items" | "anims" = "units";
 const cache: Record<string, Row[]> = {}; // key `${game}/${table}`
 let currentAnimId = 0; // the animation id shown in the Animations tab
 let animGen = 0;       // bumped each anim render so a stale progressive load stops
+const viewMode: Record<"classes" | "items", "cards" | "table"> = { classes: "cards", items: "cards" };
 
 const $ = (id: string) => document.getElementById(id)!;
 const view = $("view");
@@ -54,7 +55,18 @@ async function render(): Promise<void> {
     view.innerHTML = unitCards(shown, classMap);
     return;
   }
-  view.innerHTML = recordTable(shown);
+
+  // classes and items: a Cards or Table toggle.
+  const kind = tab as "classes" | "items";
+  const mode = viewMode[kind];
+  const body = mode === "table" ? recordTable(shown) : (kind === "classes" ? classCards(shown) : itemCards(shown));
+  view.innerHTML = `<div class="bar" id="vtoggle">
+      <button data-v="cards" class="${mode === "cards" ? "active" : ""}">Cards</button>
+      <button data-v="table" class="${mode === "table" ? "active" : ""}">Table</button>
+    </div>${body}`;
+  for (const b of view.querySelectorAll<HTMLButtonElement>("#vtoggle button")) {
+    b.addEventListener("click", () => { viewMode[kind] = b.dataset.v as "cards" | "table"; render(); });
+  }
 }
 
 function portraitSrc(id: number): string {
@@ -72,6 +84,24 @@ function unitCards(rows: Row[], classMap: Record<number, string>): string {
       <div>Def ${u.BaseDef} Res ${u.BaseRes} Lck ${u.BaseLck} Con ${u.BaseCon}</div>
     </div>`;
   }).join("") + `</div>`;
+}
+
+function classCards(rows: Row[]): string {
+  return `<div class="grid">` + rows.map((c) =>
+    `<div class="card">
+      <div><strong>${esc(c.name)}</strong> <span class="note">${idTag(c.id)}</span></div>
+      <div>HP ${c.BaseHP} Pow ${c.BasePow} Skl ${c.BaseSkl} Spd ${c.BaseSpd}</div>
+      <div>Def ${c.BaseDef} Res ${c.BaseRes} Mov ${c.BaseMov ?? "?"}</div>
+    </div>`).join("") + `</div>`;
+}
+
+function itemCards(rows: Row[]): string {
+  return `<div class="grid">` + rows.map((i) =>
+    `<div class="card">
+      <div><strong>${esc(i.name)}</strong> <span class="note">${idTag(i.id)}</span></div>
+      <div>Mt ${i.Might} Hit ${i.Hit} Crit ${i.Crit}</div>
+      <div>Wt ${i.Weight} Rank ${i.WeaponRank ?? "?"}</div>
+    </div>`).join("") + `</div>`;
 }
 
 // A generic table of the most useful columns for classes/items, name first.
