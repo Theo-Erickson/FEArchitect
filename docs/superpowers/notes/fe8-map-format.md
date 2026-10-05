@@ -1,64 +1,91 @@
-# FE8 map format findings (Task 1 spike, in progress)
+# FE8 map format findings (Task 1 spike)
 
 Date: 2026-10-05
-Status: PARTIAL. The chapter settings record is decoded, but the chapter to map
-graphics (tileset) pointer chain is not yet resolved. Go/no-go is currently NO-GO
-pending resolution of the tileset pointer system (see "Open question").
+Status: GO. The full chapter to map-graphics recipe is resolved and verified against
+Chapter 1 using the fireemblem8u decomp (same author as our CLI fork) plus live CLI
+extraction. All later tasks use the constants and formats below.
 
-## What `--export-map-settings` gives
+## Source of truth
 
-`--export-map-settings --rom=FE8_Clean.gba` reports "Found 79 maps (entry size: 148
-bytes)". Each row has an Index, a Name, an Address, and raw offset columns.
+fireemblem8u decomp: `src/chapterdata.c`, `src/bmmap.c`, `include/chapterdata.h`, and
+the symbol table (https://fireemblemuniverse.github.io/fireemblem8u/symbols.txt).
 
-Important: the Address column is a RAW FILE OFFSET (for example Chapter 1 is
-`0x008B0924`), not a mapped `0x08......` pointer. Pointers stored INSIDE the record
-are mapped (subtract `0x08000000` to get a file offset). FE8U is 16MB, so a valid
-ROM pointer is `0x08000000` to `0x08FFFFFF`; a `0x09xxxxxx` value is out of range and
-is data, not a pointer.
+## Tables (FE8U, mapped ROM addresses; file offset = addr - 0x08000000)
 
-## Chapter 1 ("01 Ch1 Escape!") record at file 0x008B0924 (148 bytes)
+- `gChapterDataTable`      = `0x088B0890`. Array of `struct ROMChapterData`, 148
+  bytes (0x94) each. This is exactly what `--export-map-settings` dumps (79 entries).
+  Chapter N record is at `0x088B0890 + N*0x94` (Ch1 = `0x008B0924`, verified).
+- `gChapterDataAssetTable` = `0x088B363C`. Array of u32 pointers. Every map asset id
+  below indexes it: `asset(id) = read_u32(gChapterDataAssetTable + id*4)`.
 
-Decoded fields of interest:
+## struct ROMChapterData (only the fields we need)
 
-- `+0x00` = `0x081C32CC`  pointer. Target is an ASCII label table: bytes
-  `4c 30 31 00` = "L01", next entry "L02", etc. This is the map label string, NOT
-  graphics. (Chapter 0 points one entry earlier, "L00".)
-- `+0x08` = `0x09000508`  out of ROM range: this is data, not a pointer.
-- `+0x14` = u16 pair (16, 9): very likely the map width and height in tiles (Ch1 is
-  a small map, consistent).
-- `+0x18` = u16 pair (19, 15), `+0x1C` = (9, 19): likely camera or bounds.
+- `+0x00` u32 `internalName` pointer (ASCII, e.g. "L01"). Not graphics.
+- `+0x04` `struct ChapterMap map`:
+  - `+0x04` u8 `obj1Id`      -> asset = OBJ tileset graphics (LZ77)
+  - `+0x05` u8 `obj2Id`      -> second OBJ graphics (often 0; not needed for FE8 base)
+  - `+0x06` u8 `paletteId`   -> asset = palette
+  - `+0x07` u8 `tileConfigId`-> asset = tileset config (TSA + terrain), LZ77
+  - `+0x08` u8 `mainLayerId` -> asset = tile layout (the .mar)
+  - `+0x09` u8 `objAnimId`, `+0x0A` u8 `paletteAnimId`, `+0x0B` u8 `changeLayerId`
 
-So the 148-byte "map settings" record holds the chapter's settings (label, bounds,
-dimensions), and does NOT directly hold the tileset graphics or tile layout pointers.
+Chapter title shown to the user comes from the `--export-map-settings` Name column
+(for example "01 Ch1 Escape!"); the runner uses that for display names.
 
-## Open question (the wall)
+## Extraction (verified on Ch1: obj1=1, pal=2, cfg=3, mainLayer=8)
 
-FE8 reaches map graphics through a tileset system, not a direct pointer in this
-record. The CLI help confirms it: `--kind=objtiles` says the address must be the
-"DEREFERENCED OBJ LZ77 stream", "NOT RomInfo.map_obj_pointer", and mentions a
-`map_config_pointer` and "anime-1/anime-2 entry tables". So the chain is roughly:
+Resolve the four pointers via the asset table, then:
 
-  chapter -> tileset id -> (RomInfo.map_obj_pointer table) -> obj tiles stream
-                        -> (map_config_pointer table)      -> chip config (TSA)
-                        -> palette
-  chapter -> tile layout (.mar) pointer (per chapter)
+```
+--export-asset --kind=map           --addr=asset(mainLayerId)   --out=ch.mar
+--export-asset --kind=objtiles      --addr=asset(obj1Id)        --out=ch.objtiles
+--export-asset --kind=mapchipconfig --addr=asset(tileConfigId)  --out=ch.cfg
+--export-palette --colors=256       --addr=asset(paletteId)     --out=ch.pal
+```
 
-To extract a chapter's map we still need: (a) which field carries the tileset id and
-the tile-layout pointer, and (b) the FE8U base addresses of `map_obj_pointer` and
-`map_config_pointer` and how a tileset id indexes them. These are version-specific
-constants FEBuilder knows internally (RomInfo); they are not in the exported data.
+The CLI also writes a `.json` sidecar for map/objtiles/cfg. The map sidecar gives
+`width` and `height` in tiles (Ch1 = 15 x 10). Use the sidecar for dimensions.
 
-## Resolution options
+## Blob formats (decompressed outputs)
 
-1. Look up the documented FE8U map/tileset structure (the fireemblem8u decomp and
-   FEBuilder RomInfo define `map_obj_pointer`, `map_config_pointer`, the tileset
-   data struct, and the chapter map-data pointer). Fastest reliable path.
-2. Continue reverse-engineering from the ROM (slower, we have the record and dims
-   as a start).
-3. Pause the maps track.
+- **ch.mar**: raw little-endian u16 per map cell, `width*height` cells, row major
+  (Ch1: 15*10*2 = 300 bytes). Sidecar format id "febuilder-mar-u16-shl3". The stored
+  u16 is `configOffset << 3`, so `configOffset = value >> 3`. All values are
+  multiples of 8; max observed 4028 (< 4096), consistent with the config below.
+- **ch.cfg** (mapchipconfig, decompressed): 9216 bytes = `0x1200` u16 =
+  `0x1000` u16 of TSA (8192 bytes) followed by `0x200` u16 terrain lookup (1024
+  bytes). Matches `EWRAM sTilesetConfig[0x1000 + 0x200]` in bmmap.c:47.
+  - TSA = the first 4096 u16. Each map chip (16x16) is 4 consecutive u16 at
+    `configOffset`: `tsa[configOffset + 0..3]` = top-left, top-right, bottom-left,
+    bottom-right (sub index s: sx = s&1, sy = s>>1).
+  - Each TSA u16 is a standard GBA screen entry: tile number bits 0..9, hflip bit 10,
+    vflip bit 11, palette bank bits 12..15.
+  - Terrain lookup = the last 512 u16 (bytes 8192..9215). Per bmmap.c:324, terrain
+    type for a cell = `terrainLookup[(value >> 3) >> 2]`. NOT used in this
+    sub-project; it is the hook for the future tactical-grid terrain track.
+- **ch.objtiles** (decompressed): 4bpp 8x8 tiles, 32 bytes per tile (Ch1: 32768
+  bytes = 1024 tiles; max tile number referenced by the TSA was 1023, a clean match).
+- **ch.pal**: JASC-PAL text (`.pal`). With `--colors=256` it gives up to 16 banks of
+  16 colors as "R G B" lines (0..255 per channel, already 8-bit). Ch1 TSA references
+  palette banks up to 4; exporting 256 colors covers all banks safely.
 
-## Reusable so far
+## Compositor math (confirmed)
 
-- Record address is a raw file offset; inner pointers are mapped; 16MB bound check.
-- Chapter dimensions appear at record `+0x14` as a u16 (width, height) pair (to be
-  confirmed once a full render validates).
+```
+for cy in 0..height-1, cx in 0..width-1:
+  off = mar[cy*width + cx] >> 3            // u16 offset into TSA
+  for s in 0..3:
+    e = tsa[off + s]
+    tileNum = e & 0x3FF; hflip = (e>>10)&1; vflip = (e>>11)&1; bank = (e>>12)&0xF
+    draw the 8x8 tile tileNum (4bpp, palette bank) at
+      (cx*16 + (s&1)*8, cy*16 + (s>>1)*8), applying hflip/vflip
+```
+
+Palette: JASC "R G B" lines parsed to RGBA (opaque). Color index = bank*16 + nibble.
+
+## Verified
+
+Ch1 pointers resolved (layout 0x81B75D0, objtiles 0x8198D8C, config 0x81AB69C,
+palette 0x81AEBF0); all four CLI exports succeeded; sizes and the tile/bank ranges
+are internally consistent (1024 tiles, TSA offsets < 4096, banks <= 4). The actual
+rendered PNG is the final visual check in the runner task.
