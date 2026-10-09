@@ -5,7 +5,7 @@ type Row = Record<string, any>;
 type AnimEntry = { cls: string; modes: number[] };
 
 let game = "";
-let tab: "units" | "classes" | "items" | "anims" = "units";
+let tab: "units" | "classes" | "items" | "anims" | "maps" = "units";
 const cache: Record<string, Row[]> = {}; // key `${game}/${table}`
 let currentAnimId = 0; // the animation id shown in the Animations tab
 let animGen = 0;       // bumped each anim render so a stale progressive load stops
@@ -57,6 +57,7 @@ function esc(s: unknown): string {
 async function render(): Promise<void> {
   if (!game) return;
   if (tab === "anims") return renderAnims();
+  if (tab === "maps") return renderMaps();
   const rows = await table(tab);
   const q = search.value.trim().toLowerCase();
   const shown = q ? rows.filter((r) => String(r.name ?? "").toLowerCase().includes(q)) : rows;
@@ -243,6 +244,37 @@ async function loadSectionsProgressively(id: number, gen: number): Promise<void>
       img.src = `/anim?game=${game}&id=${id}&section=${s}&_=${Date.now()}`;
     });
   }
+}
+
+// Maps tab: the rendered chapter maps from maps.json, searchable, with a zoom.
+type MapRow = { index: number; name: string; width: number; height: number; file: string };
+let mapScale = 1;
+
+async function renderMaps(): Promise<void> {
+  let maps: MapRow[] = [];
+  try { maps = await fetch(`/assets/reference/${game}/maps.json`).then((r) => r.json()); }
+  catch { maps = []; }
+  if (maps.length === 0) {
+    view.innerHTML = `<p class="note">No maps imported for ${esc(game.toUpperCase())}. Run Generate Maps.cmd.</p>`;
+    return;
+  }
+  const q = search.value.trim().toLowerCase();
+  const shown = q ? maps.filter((m) => m.name.toLowerCase().includes(q)) : maps;
+  view.innerHTML = `
+    <div class="anim">
+      <label>Zoom <input id="mzoom" type="range" min="1" max="4" step="0.5" value="${mapScale}"></label>
+      <span id="mzoomval" class="note">${mapScale}x</span>
+    </div>
+    <div class="grid" id="mapgrid" style="--anim-scale:${mapScale}">${shown.map((m) =>
+      `<div class="card">
+        <div><strong>${esc(m.name)}</strong> <span class="note">#${m.index} ${m.width}x${m.height}</span></div>
+        <img class="map-img" src="/assets/reference/${game}/${esc(m.file)}" alt="" loading="lazy">
+      </div>`).join("")}</div>`;
+  ($("mzoom") as HTMLInputElement).addEventListener("input", (e) => {
+    mapScale = Number((e.target as HTMLInputElement).value);
+    ($("mapgrid") as HTMLElement).style.setProperty("--anim-scale", String(mapScale));
+    $("mzoomval").textContent = `${mapScale}x`;
+  });
 }
 
 boot();

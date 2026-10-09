@@ -29,6 +29,7 @@
     .ddrow { display: flex; align-items: center; gap: 0.5rem; padding: 3px 6px; cursor: pointer; font-size: 0.85rem; }
     .ddrow:hover, .ddrow.sel { background: #8883; }
     .ddicon { width: 48px; height: 32px; object-fit: contain; image-rendering: pixelated; background: #0001; flex: none; }
+    .map-img { image-rendering: pixelated; max-width: calc(240px * var(--anim-scale, 1)); height: auto; display: block; margin-top: 4px; background: #0001; }
     .note { font-size: 0.85rem; opacity: 0.85; }
     [hidden] { display: none !important; }
   </style>
@@ -42,6 +43,7 @@
       <button data-tab="classes">Classes</button>
       <button data-tab="items">Items</button>
       <button data-tab="anims">Animations</button>
+      <button data-tab="maps">Maps</button>
     </span>
     <input id="search" placeholder="search by name" />
   </div>

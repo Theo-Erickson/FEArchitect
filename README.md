@@ -104,3 +104,8 @@ Then:
   animation up front so the Animations tab is instant. It is safe to re-run: it
   skips anything already cached. The cache lives under `assets/reference/` and is
   gitignored.
+- Double-click **Generate Maps.cmd** to render every FE8 chapter map into the
+  gallery, then browse them under the Maps tab (searchable by chapter name, with a
+  zoom). Images are cached under `assets/reference/` and are gitignored. The maps are
+  composited from the ROM tileset, tile arrangement, and palette; see
+  `docs/superpowers/notes/fe8-map-format.md` for the format.
