@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { loadGridEncounter } from "./datagen.ts";
-import { createGame, reachableFor, applyMove, applyAttack, endPhase, status, takeAiTurn } from "./game.ts";
+import { createGame, reachableFor, applyMove, applyAttack, endPhase, status, takeAiTurn, applyTileHeal } from "./game.ts";
 import { tileKey } from "./movement.ts";
 
 async function game(seed = 1) {
@@ -37,6 +37,15 @@ test("applyAttack resolves an exchange, logs it, and can end the game", async ()
   assert.ok(g.log.length > 0);
   assert.equal(g.enemy.hp, 0);
   assert.equal(status(g), "player-won");
+});
+
+test("applyTileHeal restores HP on a healing tile, capped at max", async () => {
+  const g = await game();
+  const tid = g.enc.map.terrain[g.player.pos.y][g.player.pos.x];
+  g.enc.terrainDefs[tid] = { ...g.enc.terrainDefs[tid], heal: 10, name: "Fort" };
+  g.player.hp = g.player.unit.hp - 5;
+  assert.equal(applyTileHeal(g, "eirika-t"), 5); // only 5 missing, capped at max
+  assert.equal(g.player.hp, g.player.unit.hp);
 });
 
 test("endPhase toggles the active side", async () => {

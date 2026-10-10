@@ -73,6 +73,16 @@ test("magic matchup uses mag versus res", () => {
   assert.equal(m.damage, 13);
 });
 
+test("terrain res reduces magic damage, terrain def reduces physical", () => {
+  const defender = fighter(unit({ res: 2, def: 8, spd: 0, lck: 0, con: 5 }), weapon({ type: "sword" }));
+  // magic: attack = mag 10 + might 5 = 15; res 2 + terrain res 3 = 5 -> damage 10
+  const atkMag = fighter(unit({ mag: 10, str: 0 }), weapon({ type: "anima", might: 5 }));
+  assert.equal(computeMatchup(atkMag, defender, { avoid: 0, def: 1, res: 3 }).damage, 10);
+  // physical: attack = str 10 + might 5 = 15; def 8 + terrain def 4 = 12 -> damage 3 (terrain res ignored)
+  const atkPhys = fighter(unit({ str: 10, mag: 0 }), weapon({ type: "sword", might: 5 }));
+  assert.equal(computeMatchup(atkPhys, defender, { avoid: 0, def: 4, res: 99 }).damage, 3);
+});
+
 test("zero damage yields null kill counts", () => {
   const atk = fighter(unit({ str: 1 }), weapon({ might: 1, type: "sword" }));
   const def = fighter(unit({ def: 50 }), weapon({ type: "sword" }));

@@ -83,8 +83,8 @@ export function applyAttack(g: GameState, attackerId: string, targetId: string):
     defender: combatant(target),
     attackerHp: attacker.hp,
     defenderHp: target.hp,
-    attackerTerrain: terrainMod(g.enc.terrainDefs, atkTerrainId),
-    defenderTerrain: terrainMod(g.enc.terrainDefs, defTerrainId),
+    attackerTerrain: terrainMod(g.enc.terrainDefs, atkTerrainId, attacker.cls.movementType),
+    defenderTerrain: terrainMod(g.enc.terrainDefs, defTerrainId, target.cls.movementType),
     defenderCanCounter,
     rng: g.rng,
   });
@@ -101,9 +101,26 @@ export function applyAttack(g: GameState, attackerId: string, targetId: string):
   }
 }
 
+// Heal a unit standing on a healing tile (fort, throne), capped at its max HP.
+// Returns the HP recovered. Terrain id with no heal, or a missing def, heals 0.
+export function applyTileHeal(g: GameState, id: string): number {
+  const u = unitById(g, id);
+  const d = g.enc.terrainDefs[g.enc.map.terrain[u.pos.y][u.pos.x]];
+  const heal = d?.heal ?? 0;
+  if (heal <= 0) return 0;
+  const before = u.hp;
+  u.hp = Math.min(u.unit.hp, u.hp + heal);
+  const gained = u.hp - before;
+  if (gained > 0) g.log.push(`${u.unit.name} recovered ${gained} HP on ${d.name}`);
+  return gained;
+}
+
 export function endPhase(g: GameState): void {
   if (g.phase === "enemy") g.turn += 1;
   g.phase = g.phase === "player" ? "enemy" : "player";
+  // Units heal at the start of their own phase while standing on a healing tile.
+  const active = g.phase === "player" ? g.player : g.enemy;
+  if (active.hp > 0) applyTileHeal(g, active.id);
 }
 
 export function status(g: GameState): GameStatus {

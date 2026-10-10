@@ -23,9 +23,11 @@ test("isPassable reflects null cost", () => {
   assert.equal(isPassable(DEFS, "mountain", "cav"), false);
 });
 
-test("terrainMod returns avoid and def", () => {
-  assert.deepEqual(terrainMod(DEFS, "forest"), { avoid: 20, def: 1 });
-  assert.deepEqual(terrainMod(DEFS, "plains"), { avoid: 0, def: 0 });
+test("terrainMod returns avoid, def, res for ground and zeroed bonuses for fliers", () => {
+  assert.deepEqual(terrainMod(DEFS, "forest"), { avoid: 20, def: 1, res: 0 });
+  assert.deepEqual(terrainMod(DEFS, "plains"), { avoid: 0, def: 0, res: 0 });
+  // A flier gets no terrain bonus when the def has no fly fields (showcase terrain).
+  assert.deepEqual(terrainMod(DEFS, "forest", "fly"), { avoid: 0, def: 0, res: 0 });
 });
 
 test("unknown terrain id throws", () => {

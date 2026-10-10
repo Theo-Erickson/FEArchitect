@@ -21,7 +21,15 @@ export function isPassable(
   return enterCost(defs, id, type) != null;
 }
 
-export function terrainMod(defs: Record<string, TerrainDef>, id: string): TerrainMod {
+// The terrain bonus a unit of the given movement type gets on a tile. Flying units
+// use FE8's fly bonuses (usually 0); everyone else uses the ground bonuses. res is
+// carried for the magic combat path. Missing fly/res fields fall back to 0.
+export function terrainMod(
+  defs: Record<string, TerrainDef>, id: string, type: MovementType = "foot",
+): TerrainMod {
   const d = def(defs, id);
-  return { avoid: d.avoid, def: d.def };
+  if (type === "fly") {
+    return { avoid: d.flyAvoid ?? 0, def: d.flyDef ?? 0, res: d.flyRes ?? 0 };
+  }
+  return { avoid: d.avoid, def: d.def, res: d.res ?? 0 };
 }

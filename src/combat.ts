@@ -67,9 +67,11 @@ export function computeMatchup(
   const powerStat = magic ? attacker.unit.mag : attacker.unit.str;
   const attack = attacker.weapon.might + tri.dmgBonus + powerStat;
 
-  // ComputeBattleUnitDefense: res for magic, def otherwise, plus terrain defense.
+  // ComputeBattleUnitDefense: res for magic, def otherwise, plus the terrain bonus
+  // (terrain res against magic, terrain def against physical).
   const defenseStat = magic ? defender.unit.res : defender.unit.def;
-  const damage = Math.max(0, attack - (defenseStat + defenderTerrain.def));
+  const terrainDefBonus = magic ? (defenderTerrain.res ?? 0) : defenderTerrain.def;
+  const damage = Math.max(0, attack - (defenseStat + terrainDefBonus));
 
   // ComputeBattleUnitHitRate: skl*2 + weapon hit + lck/2 + triangle hit.
   const rawHit =
