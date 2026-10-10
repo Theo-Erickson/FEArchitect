@@ -12,9 +12,20 @@ import { decodeChapterMap, makeAssetResolver, CHAPTER_TABLE_ADDR, RECORD_SIZE } 
 import { parsePalette, parseLayout, parseTsa } from "./maptiles.ts";
 import { composeMap } from "./mapcompose.ts";
 import { encodePng } from "./pngencode.ts";
+import { extractTerrain, type TerrainRaw } from "./terraindata.ts";
+import { terrainGrid } from "./terraingrid.ts";
 
 const ROM_BASE = 0x08000000;
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "../..");
+
+// A short label per terrain id for the UI. The authentic stats come from the ROM;
+// these names are a convenience and fall back to "Terrain N" for anything unlisted.
+const TERRAIN_NAMES: Record<number, string> = {
+  0: "--", 1: "Plains", 2: "Plains", 3: "Road", 4: "Wall", 5: "Floor",
+  10: "Thicket", 11: "Fort", 12: "Forest", 13: "Mountain", 14: "Village",
+  15: "Hill", 16: "Sea", 17: "River", 18: "Desert", 19: "Bridge",
+};
+const terrainName = (t: TerrainRaw) => TERRAIN_NAMES[t.id] ?? `Terrain ${t.id}`;
 
 function run(cli: string, args: string[]): void {
   const r = spawnSync(cli, args, { encoding: "utf8" });
@@ -45,9 +56,24 @@ async function genGame(game: Game): Promise<void> {
   const romBuf = await readFile(rom);
   const asset = makeAssetResolver(romBuf);
   const mapsDir = join(gameDir(ROOT, game), "maps");
+  const terrainDir = join(gameDir(ROOT, game), "terrain");
   const tmpDir = join(ROOT, ".map-tmp");
   await mkdir(mapsDir, { recursive: true });
+  await mkdir(terrainDir, { recursive: true });
   await mkdir(tmpDir, { recursive: true });
+
+  // Authentic terrain definitions (65 types) straight from the ROM tables.
+  const terrainDefs: Record<string, unknown> = {};
+  for (const t of extractTerrain(romBuf)) {
+    terrainDefs[String(t.id)] = {
+      name: terrainName(t),
+      avoid: t.avoid, def: t.def, res: t.res,
+      flyAvoid: t.flyAvoid, flyDef: t.flyDef, flyRes: t.flyRes,
+      heal: t.heal, healsStatus: t.healsStatus,
+      moveCost: t.moveCost,
+    };
+  }
+  await writeFile(join(gameDir(ROOT, game), "terrain.json"), JSON.stringify(terrainDefs, null, 2) + "\n", "utf8");
 
   const index: IndexRow[] = [];
   let made = 0, skipped = 0, failed = 0;
@@ -69,10 +95,17 @@ async function genGame(game: Game): Promise<void> {
       const dims = JSON.parse((await readFile(`${t}.mar.json`, "utf8")).replace(/^﻿/, ""));
       const width = dims.width, height = dims.height;
       index.push({ index: ch.index, name: ch.name, width: width * 16, height: height * 16, file });
+
+      // Per-chapter terrain id grid (cheap, written every run even if the PNG exists).
+      const cfgBuf = await readFile(`${t}.cfg`);
+      const layout = parseLayout(await readFile(`${t}.mar`), width, height);
+      const grid = terrainGrid(cfgBuf, layout, width, height);
+      await writeFile(join(terrainDir, `${ch.index}.json`),
+        JSON.stringify({ id: `fe8-${ch.index}`, width, height, terrainIds: grid }) + "\n", "utf8");
+
       if (existsSync(pngPath)) { skipped++; continue; }
 
-      const layout = parseLayout(await readFile(`${t}.mar`), width, height);
-      const tsa = parseTsa(await readFile(`${t}.cfg`));
+      const tsa = parseTsa(cfgBuf);
       const tiles = await readFile(`${t}.objtiles`);
       const palette = parsePalette(await readFile(`${t}.pal`, "utf8"));
       const img = composeMap({ widthChips: width, heightChips: height, layout, tsa, tiles, palette });
