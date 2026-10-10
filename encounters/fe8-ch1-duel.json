@@ -1,0 +1,9 @@
+{
+  "id": "fe8-ch1-duel",
+  "terrain": "fe8",
+  "map": "fe8-1",
+  "notes": "1v1 on the real Chapter 1 map: terrain affects range, avoid, and defense.",
+  "player": { "unit": "eirika-t", "weapon": "iron-sword", "at": [1, 5] },
+  "enemy":  { "unit": "wyvern-1", "weapon": "iron-lance", "at": [13, 5], "ai": "aggressive" },
+  "win": "rout"
+}

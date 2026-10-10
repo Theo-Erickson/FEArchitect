@@ -17,6 +17,7 @@
     .note { font-size: 0.8rem; opacity: 0.8; }
     a { font-size: 0.85rem; }
     button { padding: 0.3rem 0.6rem; }
+    .board { max-width: 100%; height: auto; }
   </style>
 </head>
 <body>
@@ -25,6 +26,14 @@
   <div class="layout" style="margin-top:0.5rem">
     <svg id="board" class="board"></svg>
     <div class="side">
+      <div class="panel controls">
+        <label>Encounter
+          <select id="enc">
+            <option value="/encounters/skirmish-01.json">Showcase skirmish</option>
+            <option value="/encounters/fe8-ch1-duel.json">FE8 Chapter 1 (real map)</option>
+          </select>
+        </label>
+      </div>
       <div class="panel controls">
         <button id="endTurn">End turn</button>
         <label><input type="checkbox" id="autoPlayer" /> auto play player</label>

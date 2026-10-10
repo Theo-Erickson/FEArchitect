@@ -29,7 +29,7 @@ export function safeConfigPath(p: string): boolean {
 export function staticAllowed(p: string): boolean {
   if (p.includes("..")) return false;
   const norm = normalize(p).replace(/\\/g, "/");
-  return ["src/", "data/", "encounters/", "maps/"].some((root) => norm.startsWith(root));
+  return ["src/", "data/", "encounters/", "maps/", "assets/reference/"].some((root) => norm.startsWith(root));
 }
 
 // Convert a TypeScript module to browser ready JavaScript by stripping types.
@@ -44,10 +44,15 @@ const CONTENT_TYPES: Record<string, string> = {
   ".ts": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".css": "text/css; charset=utf-8",
+  ".png": "image/png",
+  ".gif": "image/gif",
 };
+const BINARY = new Set([".png", ".gif"]);
 
-async function serveFile(path: string): Promise<{ body: string; type: string }> {
+async function serveFile(path: string): Promise<{ body: string | Buffer; type: string }> {
   const ext = extname(path);
+  // Chapter map images are binary; read them as a Buffer, not utf8.
+  if (BINARY.has(ext)) return { body: await readFile(path), type: CONTENT_TYPES[ext] };
   const raw = await readFile(path, "utf8");
   if (ext === ".ts") return { body: toBrowserJs(raw), type: CONTENT_TYPES[".ts"] };
   return { body: raw, type: CONTENT_TYPES[ext] ?? "text/plain; charset=utf-8" };
