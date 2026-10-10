@@ -9,6 +9,13 @@ export interface TerrainDef {
   moveCost: Record<MovementType, number | null>;
   avoid: number;
   def: number;
+  // Authentic FE8 extras (optional: the hand-authored showcase terrain omits them).
+  res?: number;
+  flyAvoid?: number; // avoid/def/res a flying unit gets here (usually 0 in FE8)
+  flyDef?: number;
+  flyRes?: number;
+  heal?: number;        // HP restored when ending a turn here (fort, throne)
+  healsStatus?: boolean; // whether the tile also cures status
 }
 
 export interface ClassDef {

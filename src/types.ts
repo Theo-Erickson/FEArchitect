@@ -100,4 +100,5 @@ export interface PreviewResult {
 export interface TerrainMod {
   avoid: number;
   def: number;
+  res?: number; // terrain bonus applied against magic (physical uses def)
 }

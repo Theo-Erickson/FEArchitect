@@ -35,6 +35,21 @@ export function validateClasses(raw: any): Record<string, ClassDef> {
 }
 
 export function resolveMap(raw: any, terrainDefs: Record<string, TerrainDef>): ResolvedMap {
+  // Chapter grid format: { id, width, height, terrainIds: number[][] }.
+  if (Array.isArray(raw?.terrainIds)) {
+    const height = raw.terrainIds.length;
+    const width = raw.width ?? (raw.terrainIds[0]?.length ?? 0);
+    const terrain: string[][] = raw.terrainIds.map((row: number[], y: number) => {
+      if (row.length !== width) throw new Error(`Map ${raw.id} row ${y} has wrong width`);
+      return row.map((n) => {
+        const id = String(n);
+        if (!terrainDefs[id]) throw new Error(`Map ${raw.id} references unknown terrain '${id}'`);
+        return id;
+      });
+    });
+    return { id: raw.id, width, height, terrain };
+  }
+  // ASCII legend format (showcase maps).
   if (!Array.isArray(raw?.tiles) || raw.tiles.length === 0) throw new Error(`Map ${raw?.id} has no tiles`);
   const legend: Record<string, string> = raw.legend ?? {};
   const width = raw.tiles[0].length;

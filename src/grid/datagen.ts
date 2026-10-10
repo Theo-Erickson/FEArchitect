@@ -25,8 +25,15 @@ export async function loadGridEncounter(encounterPath: string, paths: GridLoadPa
   const rawEnc = await readJson(encounterPath);
   const rawUnits = await readJson(paths.unitsPath ?? "data/units.json");
   const rawWeapons = await readJson(paths.weaponsPath ?? "data/weapons.json");
-  const rawTerrain = await readJson(paths.terrainPath ?? "data/terrain.json");
   const rawClasses = await readJson(paths.classesPath ?? "data/classes.json");
-  const rawMap = await readJson(`${paths.mapsDir ?? "maps"}/${rawEnc.map}.json`);
+  // An encounter with "terrain": "fe8" plays on a real chapter: authentic terrain
+  // defs and the per-chapter terrain id grid, both generated under assets/reference.
+  const useFe8 = rawEnc.terrain === "fe8";
+  const rawTerrain = await readJson(
+    paths.terrainPath ?? (useFe8 ? "assets/reference/fe8/terrain.json" : "data/terrain.json"));
+  const mapPath = useFe8
+    ? `assets/reference/fe8/terrain/${String(rawEnc.map).replace(/^fe8-/, "")}.json`
+    : `${paths.mapsDir ?? "maps"}/${rawEnc.map}.json`;
+  const rawMap = await readJson(mapPath);
   return resolveGridEncounter(rawEnc, rawUnits, rawWeapons, rawTerrain, rawClasses, rawMap);
 }
