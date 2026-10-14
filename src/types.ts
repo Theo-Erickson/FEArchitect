@@ -36,12 +36,25 @@ export interface UnitDef {
   con: number;
 }
 
+// The nine sim stats as a plain record (used for bases, caps, growths, and output).
+export type StatBlock = Pick<UnitDef, "hp" | "str" | "mag" | "skl" | "spd" | "lck" | "def" | "res" | "con">;
+
+// A skill definition. statMod skills add flat stats; combat skills apply in battle.
+export interface Skill {
+  name: string;
+  kind: "statMod" | "combat";
+  mods?: Partial<StatBlock>;                 // statMod
+  trigger?: "defendBelowHalf" | "sklRate";   // combat
+  effect?: "strikeFirst" | "ignoreDef" | "lifesteal" | "halveDamage"; // combat
+}
+
 // One resolved fighter: a unit plus the specific weapon it wields.
 export interface Combatant {
   id: string;       // the unit key, for display
   unit: UnitDef;
   weaponId: string;
   weapon: WeaponDef;
+  skills?: Skill[]; // resolved combat-relevant skills; defaults to none
 }
 
 export interface EncounterSpec {

@@ -1,5 +1,5 @@
 // Grid-specific contracts. Declarations only.
-import type { UnitDef, WeaponDef } from "../types.ts";
+import type { StatBlock, UnitDef, WeaponDef } from "../types.ts";
 
 export type MovementType = "foot" | "cav" | "fly";
 
@@ -22,6 +22,24 @@ export interface ClassDef {
   name: string;
   movementType: MovementType;
   move: number; // movement budget in points
+  // Authoring extras (optional so the minimal showcase classes still validate):
+  bases?: Partial<StatBlock>;
+  caps?: Partial<StatBlock>;
+  growths?: Partial<StatBlock>;
+  weaponRanks?: Record<string, string>;
+  skills?: string[];
+}
+
+// An authored unit: a class plus a base statblock, growths, a level, and skills.
+export interface UnitAuthor {
+  name: string;
+  class?: string;
+  level?: number;
+  baseLevel?: number;
+  bases?: Partial<StatBlock>;
+  growths?: Partial<StatBlock>;
+  skills?: string[];
+  // A flat-stat unit (current form) instead carries hp/str/... directly.
 }
 
 export interface TileVec {
