@@ -38,10 +38,20 @@ function blockers(g: MultiGame, exceptId: string): Set<string> {
   return s;
 }
 
+// Tiles a unit could move to given terrain and the other units, ignoring whose phase
+// it is. The AI uses this to evaluate a unit regardless of the current phase.
+export function reachableTilesFor(g: MultiGame, id: string): Set<string> {
+  const u = unitById(g, id);
+  if (!u) return new Set();
+  return computeReachable(g.map, g.terrainDefs, { movementType: u.cls.movementType, move: u.cls.move, from: u.pos }, blockers(g, id)).tiles;
+}
+
+// Reachable tiles for a unit whose side is active and that has not yet acted (the UI
+// shows these). Empty otherwise.
 export function reachableFor(g: MultiGame, id: string): Set<string> {
   const u = unitById(g, id);
   if (!u || u.side !== g.phase || g.acted.has(id)) return new Set();
-  return computeReachable(g.map, g.terrainDefs, { movementType: u.cls.movementType, move: u.cls.move, from: u.pos }, blockers(g, id)).tiles;
+  return reachableTilesFor(g, id);
 }
 
 export function canAttack(g: MultiGame, attackerId: string, targetId: string): boolean {
