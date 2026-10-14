@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FEArchitect: Scenario</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    body { margin: 0; padding: 1rem; }
+    h1 { font-size: 1.1rem; margin: 0 0 0.5rem; }
+    .layout { display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap; }
+    .board { border: 1px solid #8888; border-radius: 6px; max-width: 100%; height: auto; }
+    .side { min-width: 16rem; max-width: 22rem; }
+    .panel { border: 1px solid #8888; border-radius: 8px; padding: 0.6rem; margin-bottom: 0.6rem; font-size: 0.85rem; }
+    .panel h2 { font-size: 0.9rem; margin: 0 0 0.35rem; }
+    .stat { display: inline-block; min-width: 4.5rem; }
+    .note { font-size: 0.8rem; opacity: 0.85; }
+    .skill { display: inline-block; border: 1px solid #8886; border-radius: 10px; padding: 0 0.4rem; margin: 0.1rem 0.1rem 0 0; font-size: 0.78rem; }
+    .controls { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.6rem; }
+    a { font-size: 0.85rem; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <h1>FEArchitect: scenario viewer</h1>
+  <a href="/src/game/index.html">Back to the 1v1 skirmish</a>
+  <div class="controls" style="margin-top:0.5rem">
+    <label>Scenario
+      <select id="enc">
+        <option value="/encounters/scenario-01.json">Scenario 01 (authored units)</option>
+      </select>
+    </label>
+    <span class="note">Click a unit to inspect it. Click one unit then another to forecast the matchup.</span>
+  </div>
+  <div class="layout">
+    <svg id="board" class="board"></svg>
+    <div class="side">
+      <div class="panel" id="info"><span class="note">Click a unit to inspect.</span></div>
+      <div class="panel" id="forecast" hidden></div>
+    </div>
+  </div>
+  <script type="module" src="/src/game/scenario.ts"></script>
+</body>
+</html>
