@@ -95,7 +95,7 @@ function buildUnit(
   if (!Array.isArray(ref.at) || ref.at.length !== 2) throw new Error(`${side} needs an "at": [x, y]`);
   const ai: AiKind = ref.ai === "stationary" ? "stationary" : "aggressive";
   const { unit, skills } = resolveUnitStats(rawUnit, cls, skillDefs);
-  return { id: ref.unit, side, unit, weapon: weapon as WeaponDef, cls, ai, pos: { x: ref.at[0], y: ref.at[1] }, hp: unit.hp, level: rawUnit.level, skills };
+  return { id: ref.unit, side, unit, weapon: weapon as WeaponDef, cls, ai, pos: { x: ref.at[0], y: ref.at[1] }, hp: unit.hp, level: rawUnit.level, skills, portrait: rawUnit.portrait };
 }
 
 export function resolveGridEncounter(

@@ -70,6 +70,7 @@ export interface GridUnit {
   hp: number;      // current HP
   level?: number;  // for display when the unit is authored
   skills?: Skill[]; // resolved combat-relevant skills
+  portrait?: number; // portrait table index for the map token, if any
 }
 
 // A multi-unit scenario: units placed per side on a map, for the scenario viewer.
