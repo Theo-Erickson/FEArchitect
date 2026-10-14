@@ -25,6 +25,7 @@ let g: MultiGame;
 let sel: GridUnit | null = null; // selected player unit this phase
 let moved = false;               // the selected unit has repositioned, now may attack or wait
 let busy = false;                // true while the enemy AI runs
+let spriteMode: "portrait" | "class" = "portrait"; // toggle: portrait face vs class token
 
 async function fetchJson(url: string, fallback?: any): Promise<any> {
   try { const r = await fetch(url); if (!r.ok) return fallback; return await r.json(); }
@@ -52,7 +53,7 @@ function combatant(u: GridUnit): Combatant { return { id: u.id, unit: u.unit, we
 function unitToken(u: GridUnit): string {
   const color = sideColor(u.side);
   const dim = g.acted.has(u.id) ? ` opacity="0.5"` : "";
-  if (u.portrait != null) {
+  if (spriteMode === "portrait" && u.portrait != null) {
     const s = TILE - 6, x = u.pos.x * TILE + 3, y = u.pos.y * TILE + 2, cx = u.pos.x * TILE + TILE / 2;
     const clip = `clip_${u.id.replace(/[^a-z0-9]/gi, "")}`;
     const src = `/assets/reference/fe8/portraits/portrait_${String(u.portrait).padStart(3, "0")}.png`;
@@ -236,6 +237,11 @@ function start(): void {
 }
 
 document.getElementById("restart")!.addEventListener("click", start);
+
+document.getElementById("spritemode")!.addEventListener("change", (e) => {
+  spriteMode = (e.target as HTMLInputElement).checked ? "class" : "portrait";
+  render();
+});
 
 async function boot(): Promise<void> {
   const sel2 = document.getElementById("enc") as HTMLSelectElement;
