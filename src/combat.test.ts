@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { attackSpeed, trueHit2RN, weaponTriangle, computeMatchup } from "./combat.ts";
-import type { Combatant, UnitDef, WeaponDef } from "./types.ts";
+import { attackSpeed, trueHit2RN, weaponTriangle, computeMatchup, resolveExchange } from "./combat.ts";
+import { makeRng } from "./rng.ts";
+import type { Combatant, UnitDef, WeaponDef, Skill } from "./types.ts";
 
 function unit(over: Partial<UnitDef>): UnitDef {
   return { name: "U", hp: 20, str: 5, mag: 0, skl: 5, spd: 5, lck: 0, def: 5, res: 0, con: 5, ...over };
@@ -81,6 +82,59 @@ test("terrain res reduces magic damage, terrain def reduces physical", () => {
   // physical: attack = str 10 + might 5 = 15; def 8 + terrain def 4 = 12 -> damage 3 (terrain res ignored)
   const atkPhys = fighter(unit({ str: 10, mag: 0 }), weapon({ type: "sword", might: 5 }));
   assert.equal(computeMatchup(atkPhys, defender, { avoid: 0, def: 4, res: 99 }).damage, 3);
+});
+
+const luna: Skill = { name: "Luna", kind: "combat", trigger: "sklRate", effect: "ignoreDef" };
+const sol: Skill = { name: "Sol", kind: "combat", trigger: "sklRate", effect: "lifesteal" };
+const pavise: Skill = { name: "Pavise", kind: "combat", trigger: "sklRate", effect: "halveDamage" };
+const vantage: Skill = { name: "Vantage", kind: "combat", trigger: "defendBelowHalf", effect: "strikeFirst" };
+
+test("Luna annotation reports the skl rate and the on-activation damage", () => {
+  const atk = { ...fighter(unit({ str: 10, skl: 20 }), weapon({ type: "sword", might: 5 })), skills: [luna] };
+  const def = fighter(unit({ def: 8 }), weapon({ type: "sword" }));
+  const m = computeMatchup(atk, def);
+  assert.equal(m.damage, 7); // 15 - 8
+  assert.ok(m.skillNotes?.some((n) => n.skill === "Luna" && n.rate === 20 && n.damage === 15));
+});
+
+test("a combatant with no skills produces no skillNotes and unchanged numbers", () => {
+  const m = computeMatchup(fighter(unit({ str: 10 }), weapon({ might: 5 })), fighter(unit({ def: 8 }), weapon({})));
+  assert.equal(m.skillNotes, undefined);
+  assert.equal(m.damage, 7);
+});
+
+test("Luna in resolveExchange ignores defense on activation", () => {
+  // Guaranteed hit (weapon hit 100, no avoid), no crit (skl 0 -> but Luna uses skl for
+  // activation, so give skl 100 and high defender lck to zero the crit rate).
+  const atk = { ...fighter(unit({ str: 10, skl: 100, spd: 0, con: 5 }), weapon({ type: "sword", might: 10, hit: 100, crit: 0 })), skills: [luna] };
+  const def = fighter(unit({ def: 18, spd: 0, lck: 60, hp: 40, con: 5 }), weapon({ type: "sword" }));
+  const res = resolveExchange({ attacker: atk, defender: def, attackerHp: 40, defenderHp: 40, defenderCanCounter: false, rng: makeRng(1) });
+  // normal damage would be 20 - 18 = 2; Luna ignores def -> 20. So defenderHp = 20.
+  assert.equal(res.defenderHp, 20);
+});
+
+test("Sol in resolveExchange recovers HP equal to damage dealt", () => {
+  const atk = { ...fighter(unit({ str: 10, skl: 100, spd: 0, con: 5, hp: 40 }), weapon({ type: "sword", might: 10, hit: 100, crit: 0 })), skills: [sol] };
+  const def = fighter(unit({ def: 4, spd: 0, lck: 60, hp: 40, con: 5 }), weapon({ type: "sword" }));
+  const res = resolveExchange({ attacker: atk, defender: def, attackerHp: 10, defenderHp: 40, defenderCanCounter: false, rng: makeRng(1) });
+  // damage 16; attacker heals from 10 to 26.
+  assert.equal(res.attackerHp, 26);
+});
+
+test("Pavise in resolveExchange halves incoming damage on activation", () => {
+  const atk = fighter(unit({ str: 10, skl: 0, spd: 0, con: 5 }), weapon({ type: "sword", might: 10, hit: 100, crit: 0 }));
+  const def = { ...fighter(unit({ def: 4, skl: 100, spd: 0, lck: 0, hp: 40, con: 5 }), weapon({ type: "sword" })), skills: [pavise] };
+  const res = resolveExchange({ attacker: atk, defender: def, attackerHp: 40, defenderHp: 40, defenderCanCounter: false, rng: makeRng(1) });
+  // normal 16 -> Pavise halves to 8. defenderHp = 32.
+  assert.equal(res.defenderHp, 32);
+});
+
+test("Vantage makes a low-HP defender strike first", () => {
+  const atk = { ...fighter(unit({ str: 10, spd: 0, con: 5 }), weapon({ type: "sword", might: 5, hit: 100 })), id: "ATK" };
+  const def = { ...fighter(unit({ str: 6, spd: 0, con: 5, hp: 20 }), weapon({ type: "sword", might: 5, hit: 100 })), id: "DEF", skills: [vantage] };
+  const res = resolveExchange({ attacker: atk, defender: def, attackerHp: 40, defenderHp: 5, defenderCanCounter: true, rng: makeRng(1) });
+  // defender is at 5 of 20 (<= half), so it strikes first.
+  assert.equal(res.events[0].attackerId, "DEF");
 });
 
 test("zero damage yields null kill counts", () => {

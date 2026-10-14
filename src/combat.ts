@@ -4,11 +4,12 @@
 // weapons use mag and target res, where vanilla FE8 uses a single pow stat.
 
 import type {
-  Combatant, Matchup, WeaponType,
+  Combatant, Matchup, WeaponType, SkillNote,
   DeterministicReport, MonteCarloReport, TerrainMod,
 } from "./types.ts";
 import { MAGIC_TYPES } from "./types.ts";
 import { makeRng, roll2RN, type Rng } from "./rng.ts";
+import { hasEffect } from "./grid/skills.ts";
 
 // include/bmbattle.h: BATTLE_FOLLOWUP_SPEED_THRESHOLD = 4
 const FOLLOWUP_THRESHOLD = 4;
@@ -98,6 +99,16 @@ export function computeMatchup(
   const roundsToKill =
     hitsToKill === null ? null : Math.ceil(hitsToKill / (doubles ? 2 : 1));
 
+  // Combat-skill annotations. These do not change the numbers above: an activation
+  // skill is reported with its rate and on-activation effect, and only actually
+  // applied in the rolled path (resolveExchange). "attack" above is the damage with
+  // the defender's defense ignored, which is exactly Luna's on-activation damage.
+  const notes: SkillNote[] = [];
+  if (hasEffect(attacker.skills, "ignoreDef")) notes.push({ skill: "Luna", rate: attacker.unit.skl, damage: Math.max(0, attack) });
+  if (hasEffect(attacker.skills, "lifesteal")) notes.push({ skill: "Sol", rate: attacker.unit.skl, note: "recovers HP equal to damage dealt" });
+  if (hasEffect(defender.skills, "halveDamage")) notes.push({ skill: "Pavise", rate: defender.unit.skl, damage: Math.floor(damage / 2) });
+  if (hasEffect(defender.skills, "strikeFirst")) notes.push({ skill: "Vantage", rate: 100, note: "defender strikes first at or below half HP" });
+
   return {
     damage,
     attackSpeed: as,
@@ -107,6 +118,7 @@ export function computeMatchup(
     doubles,
     hitsToKill,
     roundsToKill,
+    ...(notes.length ? { skillNotes: notes } : {}),
   };
 }
 
@@ -232,21 +244,58 @@ export function resolveExchange(a: ExchangeArgs): {
   let defHp = a.defenderHp;
   const events: ExchangeEvent[] = [];
 
+  const maxAtk = a.attacker.unit.hp;
+  const maxDef = a.defender.unit.hp;
+
+  // Apply the hitter's and receiver's activation skills to one strike's damage. side
+  // "atk" means a.attacker is hitting a.defender, "def" means the reverse. Rolls only
+  // happen when a skill is present, so a skill-less exchange is byte-identical to
+  // before (no extra RNG draws).
+  const applySkills = (r: { hit: boolean; crit: boolean; damage: number }, m: Matchup, hitter: Combatant, receiver: Combatant): number => {
+    let dmg = r.damage;
+    if (!r.hit) return dmg;
+    if (hasEffect(hitter.skills, "ignoreDef") && a.rng.next100() < hitter.unit.skl) {
+      const lunaBase = m.skillNotes?.find((n) => n.skill === "Luna")?.damage ?? dmg;
+      dmg = r.crit ? lunaBase * 3 : lunaBase;
+    }
+    if (hasEffect(receiver.skills, "halveDamage") && a.rng.next100() < receiver.unit.skl) {
+      dmg = Math.floor(dmg / 2);
+    }
+    return dmg;
+  };
+
   const attackerStrike = () => {
     const r = strike(atkM, a.rng);
-    defHp = Math.max(0, defHp - r.damage);
-    events.push({ attackerId: a.attacker.id, defenderId: a.defender.id, displayedHit: atkM.displayedHit, hit: r.hit, crit: r.crit, damage: r.damage, defenderHpAfter: defHp });
+    const dmg = applySkills(r, atkM, a.attacker, a.defender);
+    defHp = Math.max(0, defHp - dmg);
+    if (r.hit && dmg > 0 && hasEffect(a.attacker.skills, "lifesteal") && a.rng.next100() < a.attacker.unit.skl) {
+      atkHp = Math.min(maxAtk, atkHp + dmg);
+    }
+    events.push({ attackerId: a.attacker.id, defenderId: a.defender.id, displayedHit: atkM.displayedHit, hit: r.hit, crit: r.crit, damage: dmg, defenderHpAfter: defHp });
   };
   const defenderStrike = () => {
     const r = strike(defM, a.rng);
-    atkHp = Math.max(0, atkHp - r.damage);
-    events.push({ attackerId: a.defender.id, defenderId: a.attacker.id, displayedHit: defM.displayedHit, hit: r.hit, crit: r.crit, damage: r.damage, defenderHpAfter: atkHp });
+    const dmg = applySkills(r, defM, a.defender, a.attacker);
+    atkHp = Math.max(0, atkHp - dmg);
+    if (r.hit && dmg > 0 && hasEffect(a.defender.skills, "lifesteal") && a.rng.next100() < a.defender.unit.skl) {
+      defHp = Math.min(maxDef, defHp + dmg);
+    }
+    events.push({ attackerId: a.defender.id, defenderId: a.attacker.id, displayedHit: defM.displayedHit, hit: r.hit, crit: r.crit, damage: dmg, defenderHpAfter: atkHp });
   };
 
-  attackerStrike();
-  if (defHp > 0 && a.defenderCanCounter) defenderStrike();
-  if (defHp > 0 && atkM.doubles) attackerStrike();
-  if (atkHp > 0 && a.defenderCanCounter && defM.doubles) defenderStrike();
+  // Vantage: a defender at or below half HP that can counter strikes first.
+  const vantage = a.defenderCanCounter && hasEffect(a.defender.skills, "strikeFirst") && a.defenderHp * 2 <= maxDef;
+  if (vantage) {
+    defenderStrike();
+    if (atkHp > 0) attackerStrike();
+    if (atkHp > 0 && defM.doubles) defenderStrike();
+    if (defHp > 0 && atkM.doubles) attackerStrike();
+  } else {
+    attackerStrike();
+    if (defHp > 0 && a.defenderCanCounter) defenderStrike();
+    if (defHp > 0 && atkM.doubles) attackerStrike();
+    if (atkHp > 0 && a.defenderCanCounter && defM.doubles) defenderStrike();
+  }
 
   return { events, attackerHp: atkHp, defenderHp: defHp };
 }

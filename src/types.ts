@@ -74,6 +74,16 @@ export interface DataBundle {
 }
 
 // What one attacker does to one defender in a single matchup.
+// A combat skill annotation on a matchup: the skill name, its activation rate, and
+// either the on-activation damage (Luna, Pavise) or a short note (Sol, Vantage). The
+// deterministic forecast reports these rather than blending them into one number.
+export interface SkillNote {
+  skill: string;
+  rate: number;      // activation percent (skl% for sklRate skills, 100 for deterministic)
+  damage?: number;   // damage on activation, when the skill changes damage
+  note?: string;     // short description, when the effect is not a single number
+}
+
 export interface Matchup {
   damage: number;         // per hit, floored at 0, no crit
   attackSpeed: number;
@@ -83,6 +93,7 @@ export interface Matchup {
   doubles: boolean;
   hitsToKill: number | null;   // ceil(targetHp / damage), null if damage is 0
   roundsToKill: number | null; // hitsToKill split by doubling, null if cannot kill
+  skillNotes?: SkillNote[];    // combat-skill annotations, present only when any apply
 }
 
 export interface DeterministicReport {
