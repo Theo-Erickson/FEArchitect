@@ -48,7 +48,13 @@ export async function loadBundle(encounterPath: string, paths: LoadPaths = {}): 
   const rawEncounter = await readJson(encounterPath);
 
   const units: Record<string, UnitDef> = {};
-  for (const [id, u] of Object.entries(rawUnits)) units[id] = validateUnit(id, u);
+  for (const [id, u] of Object.entries(rawUnits)) {
+    // Authored units (class + bases/growths/level) are for the grid slice, not the
+    // Tier 1 duel: skip them here so this loader keeps validating only flat-stat units.
+    const a = u as any;
+    if (a.bases || a.growths || a.level !== undefined) continue;
+    units[id] = validateUnit(id, u);
+  }
 
   const weapons: Record<string, WeaponDef> = {};
   for (const [id, w] of Object.entries(rawWeapons)) weapons[id] = validateWeapon(id, w);
