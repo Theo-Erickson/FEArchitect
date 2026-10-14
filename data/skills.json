@@ -1,0 +1,7 @@
+{
+  "str_plus_2": { "name": "Strength +2", "kind": "statMod", "mods": { "str": 2 } },
+  "vantage":    { "name": "Vantage", "kind": "combat", "trigger": "defendBelowHalf", "effect": "strikeFirst" },
+  "luna":       { "name": "Luna",    "kind": "combat", "trigger": "sklRate", "effect": "ignoreDef" },
+  "sol":        { "name": "Sol",     "kind": "combat", "trigger": "sklRate", "effect": "lifesteal" },
+  "pavise":     { "name": "Pavise",  "kind": "combat", "trigger": "sklRate", "effect": "halveDamage" }
+}
