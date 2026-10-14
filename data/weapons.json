@@ -1,4 +1,5 @@
 {
   "iron-sword": { "name": "Iron Sword", "type": "sword", "rank": "E", "might": 5, "hit": 90, "crit": 0, "weight": 5 },
-  "iron-lance": { "name": "Iron Lance", "type": "lance", "rank": "E", "might": 7, "hit": 80, "crit": 0, "weight": 8 }
+  "iron-lance": { "name": "Iron Lance", "type": "lance", "rank": "E", "might": 7, "hit": 80, "crit": 0, "weight": 8 },
+  "fire": { "name": "Fire", "type": "anima", "rank": "D", "might": 5, "hit": 90, "crit": 0, "weight": 4, "range": 2 }
 }

@@ -1,0 +1,11 @@
+{
+  "id": "scenario-01",
+  "map": "showcase-terrain",
+  "notes": "Authoring demo: several units per side with computed statblocks and skills.",
+  "units": [
+    { "unit": "seth", "weapon": "iron-lance", "side": "player", "at": [1, 5] },
+    { "unit": "lute", "weapon": "fire", "side": "player", "at": [2, 5] },
+    { "unit": "gen-soldier", "weapon": "iron-lance", "side": "enemy", "at": [8, 1], "ai": "aggressive" },
+    { "unit": "gen-soldier-b", "weapon": "iron-lance", "side": "enemy", "at": [8, 4], "ai": "aggressive" }
+  ]
+}

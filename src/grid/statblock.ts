@@ -10,8 +10,9 @@ const GROWABLE: (keyof StatBlock)[] = ["hp", "str", "mag", "skl", "spd", "lck", 
 export interface StatOpts { level?: number; mode?: "avg" | "rolled"; seed?: number; }
 
 export function computeStatblock(unit: any, cls: ClassDef | undefined, opts: StatOpts = {}): UnitDef {
-  // Flat-stat unit: no class and no authored bases -> return its stats as is.
-  if (!cls && !unit.bases) {
+  // Flat-stat unit: it carries its own final stats (no authored bases and no statful
+  // class to build from). A unit with a stat-only class (just movement) is still flat.
+  if (!unit.bases && !cls?.bases) {
     return { name: unit.name, hp: unit.hp, str: unit.str, mag: unit.mag, skl: unit.skl, spd: unit.spd, lck: unit.lck, def: unit.def, res: unit.res, con: unit.con };
   }
   const level = opts.level ?? unit.level ?? 1;

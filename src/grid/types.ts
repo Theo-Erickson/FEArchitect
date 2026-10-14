@@ -1,5 +1,5 @@
 // Grid-specific contracts. Declarations only.
-import type { StatBlock, UnitDef, WeaponDef } from "../types.ts";
+import type { StatBlock, UnitDef, WeaponDef, Skill } from "../types.ts";
 
 export type MovementType = "foot" | "cav" | "fly";
 
@@ -68,6 +68,16 @@ export interface GridUnit {
   ai: AiKind;      // player defaults to "aggressive" but is normally human-driven
   pos: TileVec;
   hp: number;      // current HP
+  level?: number;  // for display when the unit is authored
+  skills?: Skill[]; // resolved combat-relevant skills
+}
+
+// A multi-unit scenario: units placed per side on a map, for the scenario viewer.
+export interface ResolvedScenario {
+  id: string;
+  map: ResolvedMap;
+  terrainDefs: Record<string, TerrainDef>;
+  units: GridUnit[];
 }
 
 export interface GridEncounter {
