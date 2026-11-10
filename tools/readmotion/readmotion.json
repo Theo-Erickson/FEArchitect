@@ -1,0 +1,33 @@
+{
+  "tool_version": "2.3.0",
+  "readme": {
+    "name": "FEArchitect",
+    "tagline": "A sandbox for designing Fire Emblem 8 encounters",
+    "pitch": [
+      "**Work in progress.** FEArchitect is an early, personal sandbox for designing FE8 encounters: fight math ported from the decomp, a small tactical grid to play scenarios on, and a reference gallery built from your own ROMs.",
+      "It is groundwork, not a finished tool. The long-term goal is editing FE8 maps and scenarios with an MCP server as the authoring assistant; none of that write path exists yet."
+    ],
+    "note": "This project is a work in progress and is not ready to use as a tool. Features are incomplete, data formats change without notice, and nothing here writes to a ROM yet.",
+    "badges": [
+      {"label": "status", "message": "work in progress", "color": "#e5534b"},
+      {"label": "ready to use", "message": "not yet", "color": "#e5534b"}
+    ],
+    "features": [
+      {"title": "Fight math from the decomp", "text": "Hit, damage, crit and doubling follow the fireemblem8u source, including the 2RN hit model, so a duel previews the way the game would roll it."},
+      {"title": "A tactical grid to try scenarios on", "text": "Multi-unit scenarios on a terrain grid, with class-based movement, an aggressive enemy AI and seeded auto play to rerun a fight exactly."},
+      {"title": "A reference gallery from your ROMs", "text": "Units, classes, items, portraits, battle animations and chapter maps, imported locally from clean ROMs you supply. Nothing from the games is in this repo."},
+      {"title": "One operations layer, three ways in", "text": "The same reads, edits, previews and simulations through a CLI, an MCP server for Claude, or a local Ollama bridge."}
+    ],
+    "roadmap": [
+      {"text": "Tier 1 duel math preview", "done": true},
+      {"text": "Tactical grid skirmish and multi-unit scenarios", "done": true},
+      {"text": "Asset gallery and FE8 chapter map rendering", "done": true},
+      "Unit and enemy placements, and an encounter browser",
+      "A unit editor and a starter skills system",
+      "Writing maps, data and events back to a ROM",
+      "MCP-assisted authoring of maps and scenarios"
+    ],
+    "sections": ["banner", "badges", "nav", "hero", "note", "whats_new", "features", "clips",
+                 "controls", "built", "building", "roadmap", "history"]
+  }
+}

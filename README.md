@@ -1,7 +1,32 @@
 # FEArchitect
 
-An FE8 encounter design sandbox. This is Slice A: a Tier 1 math preview for a
-single player unit versus a single enemy. No ROM, no emulator, no grid.
+<p align="center">
+  <img alt="version: 0.0.1" src="https://img.shields.io/badge/version-0.0.1-ff4fd8?style=flat-square">
+  <img alt="made with: TypeScript" src="https://img.shields.io/badge/made%20with-TypeScript-ff4fd8?style=flat-square&logo=typescript&logoColor=white">
+  <img alt="status: work in progress" src="https://img.shields.io/badge/status-work%20in%20progress-e5534b?style=flat-square">
+  <img alt="ready to use: not yet" src="https://img.shields.io/badge/ready%20to%20use-not%20yet-e5534b?style=flat-square">
+</p>
+
+<p align="center">
+  <a href="#what-it-does">What it does</a> ·
+  <a href="#roadmap">Roadmap</a>
+</p>
+
+### A sandbox for designing Fire Emblem 8 encounters
+
+**Work in progress.** FEArchitect is an early, personal sandbox for designing FE8 encounters: fight math ported from the decomp, a small tactical grid to play scenarios on, and a reference gallery built from your own ROMs.
+
+It is groundwork, not a finished tool. The long-term goal is editing FE8 maps and scenarios with an MCP server as the authoring assistant; none of that write path exists yet.
+
+> [!NOTE]
+> This project is a work in progress and is not ready to use as a tool. Features are incomplete, data formats change without notice, and nothing here writes to a ROM yet.
+
+## What it does
+
+- **Fight math from the decomp.** Hit, damage, crit and doubling follow the fireemblem8u source, including the 2RN hit model, so a duel previews the way the game would roll it.
+- **A tactical grid to try scenarios on.** Multi-unit scenarios on a terrain grid, with class-based movement, an aggressive enemy AI and seeded auto play to rerun a fight exactly.
+- **A reference gallery from your ROMs.** Units, classes, items, portraits, battle animations and chapter maps, imported locally from clean ROMs you supply. Nothing from the games is in this repo.
+- **One operations layer, three ways in.** The same reads, edits, previews and simulations through a CLI, an MCP server for Claude, or a local Ollama bridge.
 
 ## Requirements
 
@@ -109,3 +134,58 @@ Then:
   zoom). Images are cached under `assets/reference/` and are gitignored. The maps are
   composited from the ROM tileset, tile arrangement, and palette; see
   `docs/superpowers/notes/fe8-map-format.md` for the format.
+
+## How it's built
+
+```mermaid
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#1a0f38','primaryTextColor':'#f2efff','primaryBorderColor':'#ff4fd8','lineColor':'#ff4fd8','secondaryColor':'#2a0f3e','tertiaryColor':'#07060f'}}}%%
+flowchart LR
+    root(["FEArchitect"])
+    root --> d_data["data/<br/><small>5 files</small>"]
+    root --> d_docs["docs/<br/><small>19 files</small>"]
+    d_docs --> d_docs_superpowers["superpowers/"]
+    root --> d_encounters["encounters/<br/><small>4 files</small>"]
+    root --> d_gallery["gallery/<br/><small>9 files</small>"]
+    root --> d_maps["maps/<br/><small>3 files</small>"]
+    root --> d_mcp["mcp/<br/><small>10 files</small>"]
+    root --> d_src["src/<br/><small>51 files</small>"]
+    d_src --> d_src_editor["editor/"]
+    d_src --> d_src_game["game/"]
+    d_src --> d_src_grid["grid/"]
+    root --> d_tools["tools/<br/><small>22 files</small>"]
+    d_tools --> d_tools_assetgen["assetgen/"]
+    d_tools --> d_tools_febuilder_cli["febuilder-cli/"]
+    d_tools --> d_tools_readmotion["readmotion/"]
+```
+
+```mermaid
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#1a0f38','primaryTextColor':'#f2efff','primaryBorderColor':'#ff4fd8','lineColor':'#ff4fd8','secondaryColor':'#2a0f3e','tertiaryColor':'#07060f','pie1':'#4ff0ff','pie2':'#ff4fd8','pie3':'#c9b8ff','pie4':'#2a0f3e','pie5':'#1a0f38','pieTitleTextColor':'#f2efff','pieSectionTextColor':'#07060f','pieLegendTextColor':'#f2efff','pieStrokeColor':'#07060f'}}}%%
+pie showData
+    title Languages, by size
+    "TypeScript" : 94.9
+    "HTML" : 4
+    "Batch" : 1.2
+```
+
+<details>
+<summary><b>The project in numbers</b></summary>
+
+| | |
+| --- | --- |
+| **What it is** | A command line project |
+| **Written in** | TypeScript (94.9%), HTML (4%), Batch (1.2%) |
+| **Version** | `0.0.1` |
+| **Run it with** | `Bridge.cmd` · `Cache Animations.cmd` · `Gallery.cmd` · `Generate Maps.cmd` |
+| **Size** | 139 files, 97 commits since 2026-09-09 |
+
+</details>
+
+## Roadmap
+
+- [x] Tier 1 duel math preview
+- [x] Tactical grid skirmish and multi-unit scenarios
+- [x] Asset gallery and FE8 chapter map rendering
+- [ ] Unit and enemy placements, and an encounter browser
+- [ ] A unit editor and a starter skills system
+- [ ] Writing maps, data and events back to a ROM
+- [ ] MCP-assisted authoring of maps and scenarios
