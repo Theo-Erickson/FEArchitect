@@ -65,6 +65,7 @@ export interface GridUnit {
   unit: UnitDef;
   weapon: WeaponDef;
   cls: ClassDef;
+  classId: string; // key of cls in the class table (map-sprite lookup)
   ai: AiKind;      // player defaults to "aggressive" but is normally human-driven
   pos: TileVec;
   hp: number;      // current HP

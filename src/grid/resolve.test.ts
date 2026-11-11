@@ -70,3 +70,12 @@ test("resolveMap still reads the ASCII legend format", () => {
 test("resolveMap rejects an unknown terrain id in a grid", () => {
   assert.throws(() => resolveMap({ id: "x", width: 1, height: 1, terrainIds: [[99]] }, defs), /unknown terrain/);
 });
+
+test("resolveScenario records each unit's class id for sprite lookup", () => {
+  const sc = resolveScenario({ id: "s", map: "m", units: [
+    { unit: "seth", weapon: "iron-sword", side: "player", at: [0, 0] },
+    { unit: "eirika", weapon: "iron-sword", side: "enemy", at: [1, 0] },
+  ] }, SC_UNITS, SC_WEAPONS, SC_TERRAIN, SC_CLASSES, SC_MAP, SC_SKILLS);
+  assert.equal(sc.units[0].classId, "paladin");
+  assert.equal(sc.units[1].classId, "infantry");
+});
