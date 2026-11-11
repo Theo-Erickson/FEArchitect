@@ -40,3 +40,8 @@ test("staticAllowed permits the known roots and rejects traversal", () => {
   assert.equal(staticAllowed("../secret"), false);
   assert.equal(staticAllowed("etc/passwd"), false);
 });
+
+test("staticAllowed serves map-sprite sheets", () => {
+  assert.equal(staticAllowed("assets/mapsprites/fe8-map-sprites.png"), true);
+  assert.equal(staticAllowed("assets/mapsprites/../../package.json"), false);
+});
