@@ -1,6 +1,7 @@
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cropFrame, keyOut, remapPalette, greyscale, frameRect, hexToRgb, type PixelBuf } from "./mapsprite.ts";
+import { cropFrame, keyOut, remapPalette, greyscale, frameRect, hexToRgb, validateMapping, type PixelBuf } from "./mapsprite.ts";
 
 // Build a buffer from rows of "#rrggbb" (or null for transparent).
 function buf(rows: (string | null)[][]): PixelBuf {
@@ -71,4 +72,36 @@ test("frameRect steps by stride", () => {
   assert.deepEqual(frameRect(e, 0), { x: 10, y: 20, w: 16, h: 16 });
   assert.deepEqual(frameRect(e, 2), { x: 10, y: 52, w: 16, h: 16 });
   assert.throws(() => frameRect(e, 3), /frame/);
+});
+
+const GOOD = {
+  palettes: { player: ["#0000ff"], enemy: ["#ff0000"] },
+  classes: { cavalier: { sheet: "fe8.png", x: 0, y: 0, w: 16, h: 32, frames: 3, stride: [16, 0], bg: "#a0a0f8" } },
+};
+
+test("validateMapping accepts a well-formed mapping", () => {
+  assert.deepEqual(validateMapping(GOOD), []);
+});
+
+test("validateMapping reports each problem", () => {
+  const bad = {
+    palettes: { player: ["#0000ff", "#0000aa"], enemy: ["#ff0000"] },
+    classes: { knight: { sheet: "", x: 0, y: 0, w: 0, h: 16, frames: 0, stride: [0], bg: "blue" } },
+  };
+  const problems = validateMapping(bad).join("\n");
+  assert.match(problems, /palette/);
+  assert.match(problems, /knight.*sheet/);
+  assert.match(problems, /knight.*size/);
+  assert.match(problems, /knight.*frames/);
+  assert.match(problems, /knight.*stride/);
+  assert.match(problems, /knight.*bg/);
+});
+
+test("validateMapping rejects a non-object", () => {
+  assert.ok(validateMapping(null).length > 0);
+});
+
+test("the committed data/mapsprites.json is valid", () => {
+  const json = JSON.parse(readFileSync(new URL("../../data/mapsprites.json", import.meta.url), "utf8"));
+  assert.deepEqual(validateMapping(json), []);
 });

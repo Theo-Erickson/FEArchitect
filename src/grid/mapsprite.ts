@@ -71,3 +71,27 @@ export function frameRect(e: MapSpriteEntry, i: number): { x: number; y: number;
   if (i < 0 || i >= e.frames) throw new Error(`frame ${i} out of range (0..${e.frames - 1})`);
   return { x: e.x + e.stride[0] * i, y: e.y + e.stride[1] * i, w: e.w, h: e.h };
 }
+
+const HEX = /^#[0-9a-f]{6}$/i;
+
+// Problems with a parsed data/mapsprites.json; empty when it is usable.
+export function validateMapping(json: any): string[] {
+  if (!json || typeof json !== "object") return ["mapping must be an object"];
+  const p: string[] = [];
+  const pal = json.palettes;
+  if (!pal || !Array.isArray(pal.player) || !Array.isArray(pal.enemy)) p.push("palettes.player and palettes.enemy must be arrays");
+  else {
+    if (pal.player.length !== pal.enemy.length) p.push(`palette lengths differ: player ${pal.player.length}, enemy ${pal.enemy.length}`);
+    for (const c of [...pal.player, ...pal.enemy]) if (!HEX.test(c)) p.push(`palette color is not #rrggbb: ${c}`);
+  }
+  if (!json.classes || typeof json.classes !== "object") { p.push("classes must be an object"); return p; }
+  for (const [id, e] of Object.entries<any>(json.classes)) {
+    if (typeof e?.sheet !== "string" || !e.sheet) p.push(`${id}: sheet must be a file name`);
+    if (![e?.x, e?.y].every((n) => Number.isInteger(n) && n >= 0)) p.push(`${id}: x/y must be non-negative integers`);
+    if (![e?.w, e?.h].every((n) => Number.isInteger(n) && n > 0)) p.push(`${id}: size w/h must be positive integers`);
+    if (!Number.isInteger(e?.frames) || e.frames < 1) p.push(`${id}: frames must be at least 1`);
+    if (!Array.isArray(e?.stride) || e.stride.length !== 2 || !e.stride.every(Number.isInteger)) p.push(`${id}: stride must be [dx, dy]`);
+    if (typeof e?.bg !== "string" || !HEX.test(e.bg)) p.push(`${id}: bg must be #rrggbb`);
+  }
+  return p;
+}

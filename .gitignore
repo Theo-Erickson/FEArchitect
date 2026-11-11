@@ -14,3 +14,7 @@ base/
 tools/febuilder-cli/
 # Imported FE asset reference (derived from copyrighted ROMs, not committed)
 assets/reference/
+
+# Fan-ripped GBA map-sprite sheets (not committed); only the credits note is tracked
+assets/mapsprites/*
+!assets/mapsprites/CREDITS.md
