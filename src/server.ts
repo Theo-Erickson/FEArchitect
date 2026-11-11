@@ -124,6 +124,7 @@ function startServer(): void {
 
 function openBrowser(target: string): void {
   // Windows: use the start command via cmd. Harmless if it fails.
+  if (process.env.FEA_NO_BROWSER) return; // headless runs and tests
   try {
     spawn("cmd", ["/c", "start", "", target], { detached: true, stdio: "ignore" }).unref();
   } catch {

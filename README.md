@@ -35,6 +35,15 @@ Node.js 24 or newer (it runs the TypeScript directly, no build step). Check with
 
 ## Use it
 
+Double-click **FEArchitect.cmd**. It opens the hub, a control panel in your
+browser that lists every tool, says when to use it, checks what it needs (ROMs,
+the asset CLI, imported data), and starts it for you with its output shown live
+beside it. Leave the small console window open while you work; closing it stops
+everything the hub started.
+
+The single-tool launchers live in `launchers/` if you'd rather double-click one
+directly:
+
 - Double-click **Open Editor.cmd** to open the editor in your browser. Edit unit
   stats and weapons on the left, watch the fight math update on the right, and
   click Save to write your changes back into the config files.
@@ -50,6 +59,8 @@ Node.js 24 or newer (it runs the TypeScript directly, no build step). Check with
   or click an adjacent enemy to attack. Use "End turn" to pass to the enemy, the
   "Player type" selector to compare foot, cavalry, and flying movement, and
   "auto play player" to watch the whole fight run itself from the seed.
+- Double-click **Play Scenario.cmd** for multi-unit scenarios with unit
+  inspection, matchup forecasts and the enemy AI.
 
 Grid data lives in `data/terrain.json`, `data/classes.json`, `maps/*.json`, and
 `encounters/skirmish-01.json`.
@@ -82,7 +93,8 @@ Run commands directly, for example:
     node mcp/cli.ts simulate skirmish-01 --seed 5
     node mcp/cli.ts set-unit eirika-t str=12 spd=16
 
-Or double-click `Preview (CLI).cmd` and `Simulate.cmd`.
+Or run them from the hub, or double-click `launchers/Preview (CLI).cmd` and
+`launchers/Simulate.cmd`.
 
 ### MCP server (for Claude)
 
@@ -94,7 +106,7 @@ simulate.
 ### Local bridge (natural language with a local model, no cloud)
 
 One-time: install Ollama (ollama.com) and run `ollama pull qwen2.5`. Then
-double-click `Bridge.cmd` (or `node mcp/bridge.ts`) and type requests like
+start the Local AI Bridge from the hub (or `node mcp/bridge.ts`) and type requests like
 "raise Eirika's speed to 17 and simulate the skirmish". Set `FEA_OLLAMA_MODEL` or
 `FEA_OLLAMA_HOST` to use a different model or endpoint.
 
@@ -175,7 +187,7 @@ pie showData
 | **What it is** | A command line project |
 | **Written in** | TypeScript (94.9%), HTML (4%), Batch (1.2%) |
 | **Version** | `0.0.1` |
-| **Run it with** | `Bridge.cmd` · `Cache Animations.cmd` · `Gallery.cmd` · `Generate Maps.cmd` |
+| **Run it with** | `FEArchitect.cmd` (the hub) · single tools in `launchers/` |
 | **Size** | 139 files, 97 commits since 2026-09-09 |
 
 </details>

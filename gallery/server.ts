@@ -130,6 +130,7 @@ const server = createServer(async (req, res) => {
 });
 
 function openBrowser(target: string): void {
+  if (process.env.FEA_NO_BROWSER) return; // headless runs and tests
   try { spawnSync("cmd", ["/c", "start", "", target], { stdio: "ignore" }); } catch {}
 }
 

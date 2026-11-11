@@ -1,11 +1,11 @@
 @echo off
-rem Double-click to chat with a local model (Ollama + Qwen) that edits FEArchitect.
-cd /d "%~dp0"
+rem Double-click to open the multi-unit scenario view. Starts the server if needed.
+cd /d "%~dp0.."
 where node >nul 2>nul
 if errorlevel 1 (
   echo Node.js was not found. Install it from https://nodejs.org and try again.
   pause
   exit /b 1
 )
-node --no-warnings mcp\bridge.ts
+node --no-warnings src\server.ts /src/game/scenario.html
 pause
