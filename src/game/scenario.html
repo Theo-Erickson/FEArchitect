@@ -23,6 +23,7 @@
     .target:hover { background: #8882; }
     a { font-size: 0.85rem; }
     [hidden] { display: none !important; }
+    image.mapsprite { image-rendering: crisp-edges; image-rendering: pixelated; }
   </style>
 </head>
 <body>
@@ -37,7 +38,13 @@
     <button id="endturn">End turn</button>
     <button id="wait" hidden>Wait</button>
     <button id="restart">Restart</button>
-    <label><input type="checkbox" id="spritemode" /> Class sprites</label>
+    <label>Sprites
+      <select id="spritemode">
+        <option value="map" selected>Map sprite</option>
+        <option value="portrait">Portrait</option>
+        <option value="class">Class token</option>
+      </select>
+    </label>
     <span id="status">player phase, turn 1</span>
   </div>
   <div class="layout">
