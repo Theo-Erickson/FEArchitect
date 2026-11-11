@@ -1,4 +1,6 @@
-# FEArchitect
+<p align="center">
+  <img src=".github/readme/banner.gif" alt="FEArchitect: A sandbox for designing Fire Emblem 8 encounters" width="100%">
+</p>
 
 <p align="center">
   <img alt="version: 0.0.1" src="https://img.shields.io/badge/version-0.0.1-ff4fd8?style=flat-square">
@@ -12,11 +14,20 @@
   <a href="#roadmap">Roadmap</a>
 </p>
 
+<table>
+<tr>
+<td width="52%"><img src=".github/readme/hero.gif" alt="FEArchitect in action" width="100%"></td>
+<td>
+
 ### A sandbox for designing Fire Emblem 8 encounters
 
 **Work in progress.** FEArchitect is an early, personal sandbox for designing FE8 encounters: fight math ported from the decomp, a small tactical grid to play scenarios on, and a reference gallery built from your own ROMs.
 
 It is groundwork, not a finished tool. The long-term goal is editing FE8 maps and scenarios with an MCP server as the authoring assistant; none of that write path exists yet.
+
+</td>
+</tr>
+</table>
 
 > [!NOTE]
 > This project is a work in progress and is not ready to use as a tool. Features are incomplete, data formats change without notice, and nothing here writes to a ROM yet.
@@ -147,36 +158,64 @@ Then:
   composited from the ROM tileset, tile arrangement, and palette; see
   `docs/superpowers/notes/fe8-map-format.md` for the format.
 
+## See it in action
+
+Every clip is the real project, recorded with Readmotion. Nothing is mocked up.
+
+<table>
+<tr>
+<td align="center"><img src=".github/readme/clip_math.gif" width="400" alt="Math: Editing a unit's stats updates the fight math live"><br><b>Math</b>: Editing a unit's stats updates the fight math live</td>
+<td align="center"><img src=".github/readme/clip_grid.gif" width="400" alt="Grid: Auto play running a seeded 1v1 skirmish"><br><b>Grid</b>: Auto play running a seeded 1v1 skirmish</td>
+<td align="center"><img src=".github/readme/clip_scenario.gif" width="400" alt="Scenario: A multi-unit scenario: move, end turn, enemy AI attacks"><br><b>Scenario</b>: A multi-unit scenario: move, end turn, enemy AI attacks</td>
+</tr>
+</table>
+
+<p align="center">
+  <img src=".github/readme/screenshot_editor.png" alt="Editor" width="820"><br>
+  <sub>The stat editor and fight math preview, after raising Eirika's Spd and Str</sub>
+</p>
+
+<p align="center">
+  <img src=".github/readme/screenshot_scenario.png" alt="Scenario" width="820"><br>
+  <sub>A multi-unit scenario: move, end turn, enemy AI attacks</sub>
+</p>
+
+<p align="center">
+  <img src=".github/readme/screenshot_skirmish.png" alt="Skirmish" width="820"><br>
+  <sub>The 1v1 skirmish after an auto played fight, with its combat log</sub>
+</p>
+
 ## How it's built
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#1a0f38','primaryTextColor':'#f2efff','primaryBorderColor':'#ff4fd8','lineColor':'#ff4fd8','secondaryColor':'#2a0f3e','tertiaryColor':'#07060f'}}}%%
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#121a2e','primaryTextColor':'#f2efff','primaryBorderColor':'#e8c15a','lineColor':'#e8c15a','secondaryColor':'#1c2742','tertiaryColor':'#0c0f1a'}}}%%
 flowchart LR
     root(["FEArchitect"])
     root --> d_data["data/<br/><small>5 files</small>"]
-    root --> d_docs["docs/<br/><small>19 files</small>"]
+    root --> d_docs["docs/<br/><small>22 files</small>"]
     d_docs --> d_docs_superpowers["superpowers/"]
     root --> d_encounters["encounters/<br/><small>4 files</small>"]
     root --> d_gallery["gallery/<br/><small>9 files</small>"]
+    root --> d_hub["hub/<br/><small>7 files</small>"]
+    root --> d_launchers["launchers/<br/><small>12 files</small>"]
     root --> d_maps["maps/<br/><small>3 files</small>"]
     root --> d_mcp["mcp/<br/><small>10 files</small>"]
     root --> d_src["src/<br/><small>51 files</small>"]
     d_src --> d_src_editor["editor/"]
     d_src --> d_src_game["game/"]
     d_src --> d_src_grid["grid/"]
-    root --> d_tools["tools/<br/><small>22 files</small>"]
+    root --> d_tools["tools/<br/><small>23 files</small>"]
     d_tools --> d_tools_assetgen["assetgen/"]
-    d_tools --> d_tools_febuilder_cli["febuilder-cli/"]
     d_tools --> d_tools_readmotion["readmotion/"]
 ```
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#1a0f38','primaryTextColor':'#f2efff','primaryBorderColor':'#ff4fd8','lineColor':'#ff4fd8','secondaryColor':'#2a0f3e','tertiaryColor':'#07060f','pie1':'#4ff0ff','pie2':'#ff4fd8','pie3':'#c9b8ff','pie4':'#2a0f3e','pie5':'#1a0f38','pieTitleTextColor':'#f2efff','pieSectionTextColor':'#07060f','pieLegendTextColor':'#f2efff','pieStrokeColor':'#07060f'}}}%%
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#121a2e','primaryTextColor':'#f2efff','primaryBorderColor':'#e8c15a','lineColor':'#e8c15a','secondaryColor':'#1c2742','tertiaryColor':'#0c0f1a','pie1':'#e8c15a','pie2':'#5aa0e8','pie3':'#b8c4dc','pie4':'#1c2742','pie5':'#121a2e','pieTitleTextColor':'#f2efff','pieSectionTextColor':'#0c0f1a','pieLegendTextColor':'#f2efff','pieStrokeColor':'#0c0f1a'}}}%%
 pie showData
     title Languages, by size
-    "TypeScript" : 94.9
-    "HTML" : 4
-    "Batch" : 1.2
+    "TypeScript" : 92.3
+    "HTML" : 6.4
+    "Batch" : 1.3
 ```
 
 <details>
@@ -185,12 +224,36 @@ pie showData
 | | |
 | --- | --- |
 | **What it is** | A command line project |
-| **Written in** | TypeScript (94.9%), HTML (4%), Batch (1.2%) |
+| **Written in** | TypeScript (92.3%), HTML (6.4%), Batch (1.3%) |
 | **Version** | `0.0.1` |
-| **Run it with** | `FEArchitect.cmd` (the hub) · single tools in `launchers/` |
-| **Size** | 139 files, 97 commits since 2026-09-09 |
+| **Run it with** | `FEArchitect.cmd` |
+| **Size** | 152 files, 102 commits since 2026-09-09 |
 
 </details>
+
+## Development
+
+```
+data/         units, weapons, classes, terrain, skills
+docs/         design specs, plans and format notes
+encounters/   duels, skirmishes and scenarios
+gallery/      the FE asset gallery
+hub/          the one-click control panel
+launchers/    double-click launchers for each tool
+maps/         hand-made grid maps
+mcp/          the CLI, MCP server and Ollama bridge
+src/          fight math, grid engine, editor and game pages
+tools/        asset import and Readmotion config
+```
+
+### Recording the README media
+
+The GIFs above are made with Readmotion from `tools/readmotion/readmotion.json`. Open it in the Readmotion app and click **Record all**, then **Create README**, or from a terminal:
+
+```
+readmotion-cli capture tools/readmotion/readmotion.json
+readmotion-cli build tools/readmotion/readmotion.json
+```
 
 ## Roadmap
 

@@ -1,6 +1,111 @@
 {
   "tool_version": "2.3.0",
+  "fps": 30,
+  "out": "../../.github/readme",
+  "work": ".work",
+  "full_size": true,
+  "recordings": {
+    "tour": {
+      "source": "web",
+      "start": ["node", "--no-warnings", "src/server.ts"],
+      "cwd": "../..",
+      "env": {"FEA_NO_BROWSER": "1"},
+      "url": "http://localhost:5173/",
+      "protect": ["../../data", "../../encounters"],
+      "size": [1024, 576],
+      "scale": 2,
+      "steps": [
+        {"wait_for": "#playerForm input"},
+        {"record": 0.6},
+        {"mark": "math"},
+        {"record": 1.0},
+        {"click": "#playerForm label:has-text(\"spd\") input"},
+        {"press": "Control+A"},
+        {"type": "22", "cps": 5, "then": 1.6},
+        {"click": "#playerForm label:has-text(\"str\") input"},
+        {"press": "Control+A"},
+        {"type": "15", "cps": 5, "then": 2.2},
+        {"goto": "http://localhost:5173/src/game/index.html"},
+        {"wait_for": "#board rect"},
+        {"mark": "grid"},
+        {"record": 1.0},
+        {"click": "#autoPlayer", "then": 4.2},
+        {"goto": "http://localhost:5173/src/game/scenario.html"},
+        {"wait_for": "#board rect"},
+        {"eval": "const c = document.getElementById('spritemode'); c.checked = true; c.dispatchEvent(new Event('change'))"},
+        {"wait": 0.3},
+        {"mark": "scenario"},
+        {"record": 0.8},
+        {"click": "#board rect[x=\"48\"][y=\"240\"]", "then": 1.0},
+        {"click": "#board rect[x=\"288\"][y=\"240\"]", "then": 0.5},
+        {"click": "#board rect[x=\"288\"][y=\"240\"]", "then": 0.4},
+        {"click": "#board rect[x=\"96\"][y=\"240\"]", "then": 0.8},
+        {"click": "#board rect[x=\"192\"][y=\"240\"]", "then": 0.4},
+        {"click": "#board rect[x=\"192\"][y=\"240\"]", "then": 0.4},
+        {"click": "#endturn", "then": 3.0},
+        {"mark": "end"},
+        {"record": 0.2}
+      ]
+    }
+  },
+  "banner": {
+    "recording": "tour",
+    "title": ["FEArchitect"],
+    "tagline": "FE8 encounter sandbox (WIP)",
+    "colors": {
+      "bg": "#0c0f1a",
+      "sky_mid": "#121a2e",
+      "sky_end": "#1c2742",
+      "from": "#e8c15a",
+      "to": "#5aa0e8",
+      "accent": "#e8c15a",
+      "soft": "#b8c4dc"
+    },
+    "marks": ["math", "grid", "scenario"],
+    "labels": ["FIGHT MATH", "TACTICAL GRID", "SCENARIOS"],
+    "step": 2,
+    "ms": 66
+  },
+  "hero": {
+    "recording": "tour",
+    "marks": ["math", "grid", "scenario"],
+    "width": 640,
+    "step": 3,
+    "ms": 100
+  },
+  "clips": {
+    "recording": "tour",
+    "marks": ["math", "grid", "scenario"],
+    "names": ["math", "grid", "scenario"],
+    "width": 400,
+    "step": 2,
+    "ms": 66
+  },
+  "stills": {
+    "recording": "tour",
+    "frames": {"editor": "grid-1", "skirmish": "scenario-1", "scenario": "end-1"},
+    "width": 1024
+  },
   "readme": {
+    "captions": {
+      "math": "Editing a unit's stats updates the fight math live",
+      "grid": "Auto play running a seeded 1v1 skirmish",
+      "scenario": "A multi-unit scenario: move, end turn, enemy AI attacks",
+      "editor": "The stat editor and fight math preview, after raising Eirika's Spd and Str",
+      "skirmish": "The 1v1 skirmish after an auto played fight, with its combat log"
+    },
+    "folders": {
+      "data": "units, weapons, classes, terrain, skills",
+      "docs": "design specs, plans and format notes",
+      "encounters": "duels, skirmishes and scenarios",
+      "gallery": "the FE asset gallery",
+      "hub": "the one-click control panel",
+      "launchers": "double-click launchers for each tool",
+      "maps": "hand-made grid maps",
+      "mcp": "the CLI, MCP server and Ollama bridge",
+      "src": "fight math, grid engine, editor and game pages",
+      "tools": "asset import and Readmotion config"
+    },
     "name": "FEArchitect",
     "tagline": "A sandbox for designing Fire Emblem 8 encounters",
     "pitch": [
@@ -28,6 +133,6 @@
       "MCP-assisted authoring of maps and scenarios"
     ],
     "sections": ["banner", "badges", "nav", "hero", "note", "whats_new", "features", "clips",
-                 "controls", "built", "building", "roadmap", "history"]
+                 "controls", "built", "building", "development", "roadmap", "history"]
   }
 }
