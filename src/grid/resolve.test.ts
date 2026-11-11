@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { resolveMap, resolveScenario } from "./resolve.ts";
+import { tiny } from "./testkit.ts";
 
 const SC_TERRAIN: any = { plains: { name: "Plains", moveCost: { foot: 1, cav: 1, fly: 1 }, avoid: 0, def: 0 } };
 const SC_CLASSES: any = {
@@ -69,4 +70,13 @@ test("resolveMap still reads the ASCII legend format", () => {
 
 test("resolveMap rejects an unknown terrain id in a grid", () => {
   assert.throws(() => resolveMap({ id: "x", width: 1, height: 1, terrainIds: [[99]] }, defs), /unknown terrain/);
+});
+
+test("resolveScenario uses the placement id, falling back to the unit key", () => {
+  const sc = tiny([
+    { id: "grunt-a", unit: "grunt", weapon: "iron-lance", side: "enemy", at: [0, 1] },
+    { id: "grunt-b", unit: "grunt", weapon: "iron-lance", side: "enemy", at: [1, 1] },
+    { unit: "hero", weapon: "iron-sword", side: "player", at: [0, 0] },
+  ]);
+  assert.deepEqual(sc.units.map((u) => u.id), ["grunt-a", "grunt-b", "hero"]);
 });
