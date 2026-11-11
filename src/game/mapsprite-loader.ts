@@ -71,7 +71,7 @@ export function frameSize(classId: string): { w: number; h: number } | null {
 }
 
 export function spriteUrl(classId: string, side: "player" | "enemy", acted: boolean, frame: number): string | null {
-  if (!Number.isInteger(frame)) return null;
+  if (!data || !Number.isInteger(frame)) return null;
   const key = `${classId}:${side}:${acted ? 1 : 0}:${frame}`;
   if (cache.has(key)) return cache.get(key)!;
   let url: string | null = null;
