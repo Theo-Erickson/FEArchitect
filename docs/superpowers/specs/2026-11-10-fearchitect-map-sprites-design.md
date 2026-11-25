@@ -14,7 +14,7 @@ red team palette, and units that have acted are greyed out, as in the game.
 
 | Question | Decision |
 |---|---|
-| Sheet source | FE8 (Sacred Stones) map-sprite sheets from spriters-resource |
+| Sheet source | FE8 (Sacred Stones) original standing sprites from the FEUniverse FE-Repo on GitHub (spriters-resource is behind a bot check); one sheet per class |
 | Animation | Animated idle loop (3 frames). No walk frames, no move animation |
 | Enemy coloring | Canvas palette remap, blue team palette to red team palette |
 | Slicing | In the browser at runtime (canvas), no build step or PNG decoder dependency |
