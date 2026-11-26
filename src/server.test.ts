@@ -40,3 +40,10 @@ test("staticAllowed permits the known roots and rejects traversal", () => {
   assert.equal(staticAllowed("../secret"), false);
   assert.equal(staticAllowed("etc/passwd"), false);
 });
+
+test("staticAllowed serves the terrain tileset folder", () => {
+  assert.equal(staticAllowed("assets/tilesets/fe8/index.json"), true);
+  assert.equal(staticAllowed("assets/tilesets/fe8/plains.png"), true);
+  assert.equal(staticAllowed("assets/tilesets/../../base/FE8_Clean.gba"), false);
+  assert.equal(staticAllowed("assets/other/x.png"), false);
+});
