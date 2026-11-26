@@ -6,13 +6,16 @@ export const DEFAULT_ZIP = "Feaws Tileset Collection.zip"; // looked for at the 
 
 // "FE 8/Castle Blue.png" -> { name: "Castle Blue", file: "castle-blue.png" }. Anything
 // outside the FE 8 folder, nested deeper, not a .png, or that slugs to nothing -> null.
+// Windows device names cannot be used as file names, even with an extension.
+const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/;
+
 export function sheetFileName(entry: string): { name: string; file: string } | null {
   const m = /^FE 8\/([^/\\]+)\.png$/i.exec(entry);
   if (!m) return null;
   const name = m[1];
   if (name.includes("..")) return null;
   const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").replace(/^-+|-+$/g, "");
-  if (!slug) return null;
+  if (!slug || WINDOWS_RESERVED.test(slug)) return null;
   return { name, file: `${slug}.png` };
 }
 

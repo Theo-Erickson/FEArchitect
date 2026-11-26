@@ -45,7 +45,8 @@ function loadSheet(info: SheetInfo): Promise<{ data: SheetData; img: HTMLImageEl
 const backdropCache = new Map<string, Promise<Backdrop | null>>();
 
 export function tileBackdrop(map: ResolvedMap, defs: Record<string, TerrainDef>, info: SheetInfo): Promise<Backdrop | null> {
-  const key = `${map.id}|${info.name}`;
+  // Keyed on the terrain itself: two maps can share an id (copied files, edits).
+  const key = `${info.name}|${map.width}x${map.height}|${map.terrain.map((r) => r.join(",")).join(";")}`;
   let p = backdropCache.get(key);
   if (!p) {
     p = loadSheet(info).then((sheet) => {

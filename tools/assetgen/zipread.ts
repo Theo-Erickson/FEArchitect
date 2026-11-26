@@ -10,6 +10,8 @@ export interface ZipEntry {
   read(): Uint8Array;
 }
 
+// Largest entry we will inflate (a 512x512 RGBA sheet is ~1 MB); guards against zip bombs.
+export const MAX_ENTRY_BYTES = 32 << 20;
 const EOCD_SIG = 0x06054b50, CEN_SIG = 0x02014b50, LOC_SIG = 0x04034b50;
 
 export function readZip(buf: Uint8Array): ZipEntry[] {
@@ -41,7 +43,7 @@ export function readZip(buf: Uint8Array): ZipEntry[] {
         const start = local + 30 + dv.getUint16(local + 26, true) + dv.getUint16(local + 28, true);
         const raw = buf.subarray(start, start + csize);
         if (method === 0) return raw.slice();
-        if (method === 8) return new Uint8Array(inflateRawSync(raw));
+        if (method === 8) return new Uint8Array(inflateRawSync(raw, { maxOutputLength: MAX_ENTRY_BYTES }));
         throw new Error(`unsupported compression method ${method}: ${name}`);
       },
     });

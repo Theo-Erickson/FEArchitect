@@ -35,6 +35,7 @@ async function importSheets(zipPath: string): Promise<SheetRef[]> {
       if (/^FE 8\//i.test(e.name) && /\.png$/i.test(e.name)) console.log(`  skipped unsafe name: ${e.name}`);
       continue;
     }
+    if (sheets.some((s) => s.file === ref.file)) { console.log(`  skipped duplicate name: ${e.name}`); continue; }
     await writeFile(join(OUT, ref.file), e.read());
     sheets.push(ref);
   }
@@ -65,36 +66,39 @@ async function buildIndex(sheets: SheetRef[]): Promise<void> {
   await mkdir(tmp, { recursive: true });
   const chapters: { index: number; name: string }[] = JSON.parse(await readFile(mapsJson, "utf8"));
 
-  for (const ch of chapters) {
-    try {
-      const recOff = (CHAPTER_TABLE_ADDR - ROM_BASE) + ch.index * RECORD_SIZE;
-      const ptrs = decodeChapterMap(romBuf.subarray(recOff, recOff + RECORD_SIZE), asset);
-      const hex = (p: number) => `0x${p.toString(16)}`;
-      const t = join(tmp, `ch${ch.index}`);
-      run(cli, ["--export-asset", "--kind=map", `--rom=${rom}`, `--addr=${hex(ptrs.layoutPtr)}`, `--out=${t}.mar`]);
-      run(cli, ["--export-asset", "--kind=mapchipconfig", `--rom=${rom}`, `--addr=${hex(ptrs.tileConfigPtr)}`, `--out=${t}.cfg`]);
-      const dims = JSON.parse((await readFile(`${t}.mar.json`, "utf8")).replace(/^\uFEFF/, ""));
-      const layout = parseLayout(await readFile(`${t}.mar`), dims.width, dims.height);
-      const cfg = await readFile(`${t}.cfg`);
-      const chips: number[][] = [];
-      for (let y = 0; y < dims.height; y++) chips.push(Array.from({ length: dims.width }, (_, x) => layout[y * dims.width + x] >> 2));
-      const terrain = terrainGrid(cfg, layout, dims.width, dims.height);
-      const png = decodePng(await readFile(join(gameDir(ROOT, "fe8"), "maps", `${ch.index}.png`)));
-      let best = { name: "", score: 0 };
-      for (const s of loaded) {
-        const score = matchScore(s.keys, png, chips);
-        if (score > best.score) best = { name: s.name, score };
+  try {
+    for (const ch of chapters) {
+      try {
+        const recOff = (CHAPTER_TABLE_ADDR - ROM_BASE) + ch.index * RECORD_SIZE;
+        const ptrs = decodeChapterMap(romBuf.subarray(recOff, recOff + RECORD_SIZE), asset);
+        const hex = (p: number) => `0x${p.toString(16)}`;
+        const t = join(tmp, `ch${ch.index}`);
+        run(cli, ["--export-asset", "--kind=map", `--rom=${rom}`, `--addr=${hex(ptrs.layoutPtr)}`, `--out=${t}.mar`]);
+        run(cli, ["--export-asset", "--kind=mapchipconfig", `--rom=${rom}`, `--addr=${hex(ptrs.tileConfigPtr)}`, `--out=${t}.cfg`]);
+        const dims = JSON.parse((await readFile(`${t}.mar.json`, "utf8")).replace(/^\uFEFF/, ""));
+        const layout = parseLayout(await readFile(`${t}.mar`), dims.width, dims.height);
+        const cfg = await readFile(`${t}.cfg`);
+        const chips: number[][] = [];
+        for (let y = 0; y < dims.height; y++) chips.push(Array.from({ length: dims.width }, (_, x) => layout[y * dims.width + x] >> 2));
+        const terrain = terrainGrid(cfg, layout, dims.width, dims.height);
+        const png = decodePng(await readFile(join(gameDir(ROOT, "fe8"), "maps", `${ch.index}.png`)));
+        let best = { name: "", score: 0 };
+        for (const s of loaded) {
+          const score = matchScore(s.keys, png, chips);
+          if (score > best.score) best = { name: s.name, score };
+        }
+        if (best.score < MIN_MATCH) { console.log(`  ${ch.index} ${ch.name}: no matching sheet (best ${(best.score * 100).toFixed(0)}%)`); continue; }
+        let acc = accs.get(best.name);
+        if (!acc) { acc = newAcc(); accs.set(best.name, acc); }
+        mineChapter(acc, chips, terrain, ch.index);
+        console.log(`  ${ch.index} ${ch.name}: ${best.name} (${(best.score * 100).toFixed(0)}%)`);
+      } catch (e) {
+        console.log(`  ${ch.index} ${ch.name} FAILED: ${(e as Error).message}`);
       }
-      if (best.score < MIN_MATCH) { console.log(`  ${ch.index} ${ch.name}: no matching sheet (best ${(best.score * 100).toFixed(0)}%)`); continue; }
-      let acc = accs.get(best.name);
-      if (!acc) { acc = newAcc(); accs.set(best.name, acc); }
-      mineChapter(acc, chips, terrain, ch.index);
-      console.log(`  ${ch.index} ${ch.name}: ${best.name} (${(best.score * 100).toFixed(0)}%)`);
-    } catch (e) {
-      console.log(`  ${ch.index} ${ch.name} FAILED: ${(e as Error).message}`);
     }
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
   }
-  await rm(tmp, { recursive: true, force: true });
 
   const terrainDefs = JSON.parse(await readFile(join(gameDir(ROOT, "fe8"), "terrain.json"), "utf8"));
   const index: { name: string; file: string; data: string; chapters: number[]; terrains: number[] }[] = [];

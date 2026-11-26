@@ -127,8 +127,8 @@ then takes the first non-empty candidate list from:
 
 1. The key with every `-1` replaced by `t` (map edges treated as more of the same; real chapter borders are noisy, so this comes first).
 2. `contexts["t,n,e,s,w"]`, the literal key with `-1` for off-map.
-3. The known context for centre `t` with the most neighbour ids equal to the cell's
-   neighbours, provided at least two match (ties: higher total count, then key order).
+3. The known context for centre `t` with the most neighbour ids equal to the cell's neighbours
+   (edges counted as `t`, as in step 1), provided at least two match (ties: higher total count, then key order).
 4. `freq[t]`.
 
 No candidates, or no FE8 id for the cell: `null`.
@@ -159,7 +159,7 @@ count, and pick one weighted by count with a deterministic hash of `(x, y)` (the
 - Custom maps use the tile backdrop.
 - New control next to "Class sprites": `<select id="tileset">` with "Placeholder (SVG)"
   plus each indexed sheet name. Its initial value is the map's `tileset` if indexed, else
-  "Overworld Regular" (the sheet with the most mined chapters), else placeholder. Hidden
+  "Overworld Regular" (the sheet with the most mined chapters), else the first indexed sheet. Hidden
   for FE8 chapter encounters and when the index is missing.
 - Changes are limited to the terrain part of `render()`, boot, and wiring the new
   control. The unit token code (`unitToken`) is not touched, to stay clear of

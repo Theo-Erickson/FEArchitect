@@ -16,6 +16,8 @@ test("sheetFileName skips other folders, non-PNGs and unsafe names", () => {
   assert.equal(sheetFileName("FE 8/..png"), null);
   assert.equal(sheetFileName("FE 8/!!!.png"), null);
   assert.equal(sheetFileName("FE 8\\Fort.png"), null);
+  assert.equal(sheetFileName("FE 8/CON.png"), null); // Windows device name
+  assert.equal(sheetFileName("FE 8/lpt1.png"), null);
 });
 
 test("dataFileFor swaps the extension", () => {

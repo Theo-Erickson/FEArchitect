@@ -57,3 +57,15 @@ test("readZip rejects encrypted entries on read and non-zip input", () => {
   assert.throws(() => readZip(zip)[0].read(), /encrypted/);
   assert.throws(() => readZip(new Uint8Array(40)), /not a zip/);
 });
+
+test("readZip fails cleanly on a truncated central directory or bad local offset", () => {
+  const zip = makeZip([{ name: "FE 8/a.png", data: new Uint8Array([1, 2, 3]), method: 0 }]);
+  const dv = new DataView(zip.buffer);
+  const eocd = zip.length - 22;
+  const badCd = zip.slice(); new DataView(badCd.buffer).setUint32(eocd + 16, zip.length - 30, true); // CD offset into the EOCD
+  assert.throws(() => readZip(badCd), /corrupt zip central directory/);
+  const cdStart = dv.getUint32(eocd + 16, true);
+  const badLocal = zip.slice(); new DataView(badLocal.buffer).setUint32(cdStart + 42, 0x7fffffff, true); // local header far past the end
+  const [e] = readZip(badLocal);
+  assert.throws(() => e.read());
+});

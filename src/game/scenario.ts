@@ -40,11 +40,11 @@ async function fetchJson(url: string, fallback?: any): Promise<any> {
   catch { return fallback; }
 }
 
-async function fetchScenario(path: string): Promise<ResolvedScenario> {
+async function fetchScenario(path: string): Promise<{ sc: ResolvedScenario; png: string }> {
   const enc = await fetch(path).then((r) => r.json());
   const fe8 = enc.terrain === "fe8";
   const mapId = String(enc.map).replace(/^fe8-/, "");
-  chapterPng = fe8 ? `/assets/reference/fe8/maps/${mapId}.png` : "";
+  const png = fe8 ? `/assets/reference/fe8/maps/${mapId}.png` : "";
   const [units, weapons, custom, fe8cls, skills, terrain] = await Promise.all([
     fetchJson("/data/units.json"), fetchJson("/data/weapons.json"), fetchJson("/data/classes.json"),
     fetchJson("/assets/reference/fe8/sim-classes.json", {}), fetchJson("/data/skills.json", {}),
@@ -52,7 +52,7 @@ async function fetchScenario(path: string): Promise<ResolvedScenario> {
   ]);
   const classes = { ...(fe8cls ?? {}), ...custom };
   const map = await fetchJson(fe8 ? `/assets/reference/fe8/terrain/${mapId}.json` : `/maps/${enc.map}.json`);
-  return resolveScenario(enc, units, weapons, terrain, classes, map, skills ?? {});
+  return { sc: resolveScenario(enc, units, weapons, terrain, classes, map, skills ?? {}), png };
 }
 
 function sideColor(side: string): string { return side === "enemy" ? "#e0453b" : "#2b6cff"; }
@@ -101,8 +101,10 @@ function render(): void {
   const w = g.map.width * TILE, h = g.map.height * TILE;
   board.setAttribute("width", String(w)); board.setAttribute("height", String(h)); board.setAttribute("viewBox", `0 0 ${w} ${h}`);
   let svg = "";
+  // A chapter draws its ROM-rendered image over the placeholder, so a missing PNG
+  // still leaves a readable board.
   svg += chapterPng
-    ? `<image href="${chapterPng}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" style="image-rendering:pixelated" pointer-events="none"/>`
+    ? terrainLayer(g.map.terrain, TILE, null) + `<image href="${chapterPng}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" style="image-rendering:pixelated" pointer-events="none"/>`
     : terrainLayer(g.map.terrain, TILE, backdrop);
   if (sel && !moved) {
     for (const key of reachableFor(g, sel.id)) {
@@ -271,11 +273,15 @@ document.getElementById("spritemode")!.addEventListener("change", (e) => {
 
 async function boot(): Promise<void> {
   const sel2 = document.getElementById("enc") as HTMLSelectElement;
+  let encToken = 0; // ignores a slower earlier load when the scenario is switched quickly
   sel2.addEventListener("change", async () => {
-    scRaw = await fetchScenario(sel2.value);
+    const tok = ++encToken;
+    const r = await fetchScenario(sel2.value);
+    if (tok !== encToken) return;
+    scRaw = r.sc; chapterPng = r.png;
     syncTilesetControl(); start(); void refreshBackdrop();
   });
-  scRaw = await fetchScenario(sel2.value);
+  ({ sc: scRaw, png: chapterPng } = await fetchScenario(sel2.value));
   sheets = await loadTilesetIndex();
   if (sheets) {
     tilesetSel.innerHTML = `<option value="">Placeholder (SVG)</option>` +

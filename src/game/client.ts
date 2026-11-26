@@ -65,7 +65,9 @@ async function refreshBackdrop(): Promise<void> {
   const b = info ? await tileBackdrop(g.enc.map, g.enc.terrainDefs, info) : null;
   if (token !== backdropToken) return;
   backdrop = b;
-  if (b && !busy) render();
+  // Draw once any running slide animation has finished, so it is never interrupted.
+  const draw = (): void => { if (busy) requestAnimationFrame(draw); else render(); };
+  if (b) draw();
 }
 
 async function boot(): Promise<void> {

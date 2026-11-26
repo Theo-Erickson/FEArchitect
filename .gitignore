@@ -19,3 +19,7 @@ assets/reference/
 # ROM-derived chip index: local only
 assets/tilesets/**
 !assets/tilesets/CREDITS.md
+# The fan tileset zip if kept at the repo root, and the tools' scratch folders
+/Feaws Tileset Collection.zip
+.tileset-tmp/
+.map-tmp/
