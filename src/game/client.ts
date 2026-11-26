@@ -13,7 +13,8 @@ import {
 } from "../grid/game.ts";
 import { tileKey, type PathResult } from "../grid/movement.ts";
 import { pathOffsetAt } from "../grid/anim.ts";
-import { terrainSprite, unitSprite, TILE_COLORS } from "../grid/render.ts";
+import { unitSprite, terrainLayer } from "../grid/render.ts";
+import { loadTilesetIndex, pickSheet, tileBackdrop, type Backdrop } from "./tilebackdrop.ts";
 import { weaponRange, manhattan } from "../grid/range.ts";
 import { decideAction } from "../grid/ai.ts";
 import type { TileVec, MovementType, ClassDef } from "../grid/types.ts";
@@ -25,6 +26,8 @@ let g: GameState;
 let encPath = "/encounters/skirmish-01.json"; // the selected encounter
 let isChapter = false; // true when playing on a real FE8 chapter (PNG backdrop)
 let chapterPng = ""; // URL of the chapter map image when isChapter
+let backdrop: Backdrop | null = null; // composed terrain chips for custom maps
+let backdropToken = 0;
 let origPlayerCls: ClassDef;
 let preview: { to: TileVec; path: PathResult } | null = null;
 let busy = false; // true while an animation runs
@@ -53,12 +56,25 @@ async function fetchGridEncounter(path: string) {
   return resolveGridEncounter(enc, units, weapons, terrain, classes, map);
 }
 
+async function refreshBackdrop(): Promise<void> {
+  const token = ++backdropToken;
+  backdrop = null;
+  if (isChapter) return;
+  const sheets = await loadTilesetIndex();
+  const info = sheets ? pickSheet(sheets, g.enc.map.tileset) : null;
+  const b = info ? await tileBackdrop(g.enc.map, g.enc.terrainDefs, info) : null;
+  if (token !== backdropToken) return;
+  backdrop = b;
+  if (b && !busy) render();
+}
+
 async function boot(): Promise<void> {
   const enc = await fetchGridEncounter(encPath);
   g = createGame(enc, readSeed());
   origPlayerCls = g.player.cls;
   wire();
   render();
+  void refreshBackdrop();
 }
 
 function readSeed(): number { return Number((document.getElementById("seed") as HTMLInputElement).value) || 1; }
@@ -88,13 +104,10 @@ function render(): void {
       }
     }
   } else {
-    for (let y = 0; y < g.enc.map.height; y++) {
-      for (let x = 0; x < g.enc.map.width; x++) {
-        const id = g.enc.map.terrain[y][x], px = x * TILE, py = y * TILE;
-        svg += `<rect x="${px}" y="${py}" width="${TILE}" height="${TILE}" fill="${TILE_COLORS[id] ?? "#ccc"}" stroke="#00000022"/>`;
-        svg += terrainSprite(id, px, py, TILE, x, y);
-        if (reach.has(`${x},${y}`)) svg += `<rect x="${px}" y="${py}" width="${TILE}" height="${TILE}" fill="#2b6cff40" stroke="#2b6cffcc" stroke-width="1.5"/>`;
-      }
+    svg += terrainLayer(g.enc.map.terrain, TILE, backdrop);
+    for (const key of reach) {
+      const [x, y] = key.split(",").map(Number);
+      svg += `<rect x="${x * TILE}" y="${y * TILE}" width="${TILE}" height="${TILE}" fill="#2b6cff40" stroke="#2b6cffcc" stroke-width="1.5"/>`;
     }
   }
   // Preview path dots and, if the enemy is attackable from the previewed tile, a marker.
@@ -268,6 +281,7 @@ async function restart(): Promise<void> {
   applyTypeSelector();
   preview = null;
   render();
+  void refreshBackdrop();
   if (autoOn()) autoStep();
 }
 
