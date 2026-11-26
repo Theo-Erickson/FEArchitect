@@ -12,20 +12,11 @@ import { decodeChapterMap, makeAssetResolver, CHAPTER_TABLE_ADDR, RECORD_SIZE } 
 import { parsePalette, parseLayout, parseTsa } from "./maptiles.ts";
 import { composeMap } from "./mapcompose.ts";
 import { encodePng } from "./pngencode.ts";
-import { extractTerrain, type TerrainRaw } from "./terraindata.ts";
+import { extractTerrain, terrainName } from "./terraindata.ts";
 import { terrainGrid } from "./terraingrid.ts";
 
 const ROM_BASE = 0x08000000;
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "../..");
-
-// A short label per terrain id for the UI. The authentic stats come from the ROM;
-// these names are a convenience and fall back to "Terrain N" for anything unlisted.
-const TERRAIN_NAMES: Record<number, string> = {
-  0: "--", 1: "Plains", 2: "Plains", 3: "Road", 4: "Wall", 5: "Floor",
-  10: "Thicket", 11: "Fort", 12: "Forest", 13: "Mountain", 14: "Village",
-  15: "Hill", 16: "Sea", 17: "River", 18: "Desert", 19: "Bridge",
-};
-const terrainName = (t: TerrainRaw) => TERRAIN_NAMES[t.id] ?? `Terrain ${t.id}`;
 
 function run(cli: string, args: string[]): void {
   const r = spawnSync(cli, args, { encoding: "utf8" });
@@ -66,7 +57,7 @@ async function genGame(game: Game): Promise<void> {
   const terrainDefs: Record<string, unknown> = {};
   for (const t of extractTerrain(romBuf)) {
     terrainDefs[String(t.id)] = {
-      name: terrainName(t),
+      name: terrainName(t.id),
       avoid: t.avoid, def: t.def, res: t.res,
       flyAvoid: t.flyAvoid, flyDef: t.flyDef, flyRes: t.flyRes,
       heal: t.heal, healsStatus: t.healsStatus,
