@@ -42,9 +42,9 @@ scenario viewer drawing FE8 chapter maps as grey boxes.
 
 ## Components
 
-### 1. Sheet import: `tools/assetgen/tilesetimport.ts`
 
-`node tools/assetgen/tilesetimport.ts <zip>` copies the FE8 sheets into
+
+`node tools/assetgen/tilesets.ts [zip]` first copies the FE8 sheets into
 `assets/tilesets/fe8/`.
 
 - A minimal zip reader (`tools/assetgen/zipread.ts`, pure): reads the end-of-central-directory
@@ -59,9 +59,9 @@ scenario viewer drawing FE8 chapter maps as grey boxes.
   step from the original basename list, which the import writes to
   `assets/tilesets/fe8/sheets.json` as `[{ "name": "Castle Blue", "file": "castle-blue.png" }]`.
 
-### 2. Chip index: `tools/assetgen/tilesetindex.ts`
 
-`node tools/assetgen/tilesetindex.ts` (needs `base/FE8_Clean.gba`, the FEBuilder CLI and
+
+The same command then builds the index (needs `base/FE8_Clean.gba`, the FEBuilder CLI and
 the chapter PNGs from `mapgen.ts`). For every FE8 chapter in `assets/reference/fe8/maps.json`:
 
 1. Resolve the chapter's layout and tile-config pointers with `mapdata.ts` and export the
@@ -125,7 +125,7 @@ then takes the first non-empty candidate list from:
 1. `contexts["t,n,e,s,w"]`, the exact context.
 2. The same key with every `-1` replaced by `t` (map edges treated as more of the same).
 3. The known context for centre `t` with the most neighbour ids equal to the cell's
-   neighbours (ties: higher total count, then key order).
+   neighbours, provided at least two match (ties: higher total count, then key order).
 4. `freq[t]`.
 
 No candidates, or no FE8 id for the cell: `null`.
@@ -179,8 +179,10 @@ ignores it. The shipped maps under `maps/` stay as they are (default sheet).
 - `.gitignore`: `assets/tilesets/**` and `!assets/tilesets/CREDITS.md`.
 - `assets/tilesets/CREDITS.md` (tracked): credits Feaw's Tileset Collection as the source,
   notes the art belongs to Nintendo / Intelligent Systems and is not committed, and gives
-  the two restore commands (import, then index).
-- README: a short "Terrain tiles" note with the same two commands.
+  the restore command. A hub entry "Build Tilesets" with `launchers/Build Tilesets.cmd`
+  runs it (the zip defaults to `Feaws Tileset Collection.zip` at the repo root; import
+  is skipped when no zip is found but sheets are already imported).
+- README: a short "Terrain tiles" note with the same command.
 
 ## Error handling
 
