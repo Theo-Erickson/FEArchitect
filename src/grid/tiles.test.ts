@@ -19,14 +19,22 @@ test("chipSource maps a sheet position to pixel coords", () => {
   assert.deepEqual(chipSource(33), { sx: 16, sy: 16 });
 });
 
-test("exact context wins", () => {
+test("the literal edge context is used when the edges-as-self key is unknown", () => {
   const sheet: SheetData = { terrains: [1, 12], contexts: { "1,-1,12,-1,-1": [[7, 3]], "1,1,1,1,1": [[8, 9]] }, freq: { "1": [[9, 99]] } };
   assert.deepEqual(chooseChips(map([["plains", "forest"]]), defs, sheet)[0][0], 7);
 });
 
-test("edges count as the same terrain when the exact key is unknown", () => {
-  const sheet: SheetData = { terrains: [1], contexts: { "1,1,1,1,1": [[8, 2]] }, freq: { "1": [[9, 99]] } };
+test("edges count as the same terrain first, before the literal edge context", () => {
+  const sheet: SheetData = { terrains: [1], contexts: { "1,1,1,1,1": [[8, 2]], "1,-1,-1,-1,-1": [[5, 50]] }, freq: { "1": [[9, 99]] } };
   assert.deepEqual(chooseChips(map([["plains"]]), defs, sheet), [[8]]);
+});
+
+test("variation is weighted by count: a dominant chip wins most tiles", () => {
+  const rows = Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "plains"));
+  const sheet: SheetData = { terrains: [1], contexts: {}, freq: { "1": [[1, 90], [2, 46]] } };
+  const flat = chooseChips(map(rows), defs, sheet).flat();
+  const ones = flat.filter((p) => p === 1).length;
+  assert.ok(ones > 50 && ones < 85, `chip 1 on ${ones} of 100 tiles`); // ~66% expected
 });
 
 test("best partial context needs at least two matching neighbours, else frequency", () => {

@@ -24,11 +24,14 @@ export function fe8IdFor(def: TerrainDef | undefined, terrains: number[]): numbe
   return null;
 }
 
-// Among chips with at least half the top count, pick one by a coordinate hash.
+// Among chips with at least half the top count, pick one by a coordinate hash,
+// weighted by how often FE8 used each, so rare variants stay rare.
 function pick(list: ChipCounts, x: number, y: number): number {
   const top = list[0][1];
   const keep = list.filter(([, c]) => c * 2 >= top);
-  return keep[Math.floor(vary(x, y, 17) * keep.length) % keep.length][0];
+  let r = vary(x, y, 17) * keep.reduce((a, c) => a + c[1], 0);
+  for (const [p, c] of keep) { if (r < c) return p; r -= c; }
+  return keep[keep.length - 1][0];
 }
 
 export function chooseChips(map: ResolvedMap, defs: Record<string, TerrainDef>, sheet: SheetData): (number | null)[][] {
@@ -46,12 +49,15 @@ export function chooseChips(map: ResolvedMap, defs: Record<string, TerrainDef>, 
   return ids.map((row, y) => row.map((t, x) => {
     if (t == null) return null;
     const nb = [at(x, y - 1), at(x + 1, y), at(x, y + 1), at(x - 1, y)];
-    let list = sheet.contexts[[t, ...nb].join(",")];
-    if (!list?.length) list = sheet.contexts[[t, ...nb.map((v) => (v === -1 ? t : v))].join(",")];
+    // Map edges first count as more of the same terrain: real chapter borders are
+    // noisy (roads, sand, cliffs run off-map), so the literal edge context misleads.
+    const nbSelf = nb.map((v) => (v === -1 ? t : v));
+    let list = sheet.contexts[[t, ...nbSelf].join(",")];
+    if (!list?.length) list = sheet.contexts[[t, ...nb].join(",")];
     if (!list?.length) {
       let best: { score: number; total: number; key: string; list: ChipCounts } | null = null;
       for (const c of byCentre.get(t) ?? []) {
-        const score = c.nb.reduce((a, v, i) => a + (v === nb[i] ? 1 : 0), 0);
+        const score = c.nb.reduce((a, v, i) => a + (v === nbSelf[i] ? 1 : 0), 0);
         if (score < MIN_PARTIAL || !c.list.length) continue;
         if (!best || score > best.score || (score === best.score && (c.total > best.total || (c.total === best.total && c.key < best.key)))) {
           best = { score, total: c.total, key: c.key, list: c.list };

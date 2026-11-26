@@ -125,8 +125,8 @@ Each cell's custom terrain is first resolved to an FE8 id (section 3); its neigh
 ids form the key (`-1` off-map; a neighbour with no FE8 id also counts as `-1`). The cell
 then takes the first non-empty candidate list from:
 
-1. `contexts["t,n,e,s,w"]`, the exact context.
-2. The same key with every `-1` replaced by `t` (map edges treated as more of the same).
+1. The key with every `-1` replaced by `t` (map edges treated as more of the same; real chapter borders are noisy, so this comes first).
+2. `contexts["t,n,e,s,w"]`, the literal key with `-1` for off-map.
 3. The known context for centre `t` with the most neighbour ids equal to the cell's
    neighbours, provided at least two match (ties: higher total count, then key order).
 4. `freq[t]`.
@@ -134,7 +134,7 @@ then takes the first non-empty candidate list from:
 No candidates, or no FE8 id for the cell: `null`.
 
 **Variation:** from the chosen list, keep chips whose count is at least half the top
-count, and pick one with a deterministic hash of `(x, y)` (the same hash family as
+count, and pick one weighted by count with a deterministic hash of `(x, y)` (the same hash family as
 `vary()` in `render.ts`). Same map and sheet always give the same chips.
 
 ### 5. Backdrop: `src/game/tilebackdrop.ts` (browser)
