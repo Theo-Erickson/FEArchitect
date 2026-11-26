@@ -95,15 +95,18 @@ the terrain mapping below.
 ### 3. Terrain mapping
 
 Each custom terrain in `data/terrain.json` gains an optional `fe8` array of candidate FE8
-terrain ids, in preference order. Starting values, to be tuned against the index report:
+terrain ids, in preference order. Values, tuned against the index report:
 
 | Custom terrain | `fe8` |
 |---|---|
 | plains | `[1]` |
 | forest | `[12]` |
-| mountain | `[15, 13]` |
-| water | `[17, 16]` |
-| wall | `[4, 22, 38]` |
+| mountain | `[17, 18]` |
+| water | `[16, 21, 22]` |
+| wall | `[26, 27, 38]` |
+
+These were tuned against the real index. FE8 terrain ids by move cost: 12 Forest, 13 Thicket,
+16 River, 17 Mountain, 18 Peak, 21 Sea, 22 Lake, 26/27 Wall, 38 Cliff.
 
 `TerrainDef` gets `fe8?: number[]`. `validateTerrainDefs` accepts it when absent or an
 array of integers, and throws otherwise.

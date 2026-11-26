@@ -1016,11 +1016,11 @@ Add an `"fe8"` field to each entry (keep all existing fields):
 |---|---|
 | `plains` | `[1]` |
 | `forest` | `[12]` |
-| `mountain` | `[15, 13]` |
-| `water` | `[17, 16]` |
-| `wall` | `[4, 22, 38]` |
+| `mountain` | `[17, 18]` |
+| `water` | `[16, 21, 22]` |
+| `wall` | `[26, 27, 38]` |
 
-Tuning rule, using the Task 5 report: every list should have at least one id present in "Overworld Regular" (the default sheet). If the report shows a mountain or water id with far more cells than the listed first choice on that sheet, put it first. Keep ids that appear in the Fort/Castle sheets (4 = Wall) for indoor sheets.
+These values were already tuned against the real index (FE8 terrain ids by move cost: 12 Forest, 13 Thicket, 16 River, 17 Mountain, 18 Peak, 21 Sea, 22 Lake, 26/27 Wall, 38 Cliff); use them as given.
 
 - [ ] **Step 6: Run the full suite**
 
