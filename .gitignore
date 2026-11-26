@@ -14,3 +14,8 @@ base/
 tools/febuilder-cli/
 # Imported FE asset reference (derived from copyrighted ROMs, not committed)
 assets/reference/
+
+# FE8 terrain tileset sheets (fan-ripped art, see assets/tilesets/CREDITS.md) and the
+# ROM-derived chip index: local only
+assets/tilesets/**
+!assets/tilesets/CREDITS.md
