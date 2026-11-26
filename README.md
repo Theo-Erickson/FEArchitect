@@ -158,6 +158,28 @@ Then:
   composited from the ROM tileset, tile arrangement, and palette; see
   `docs/superpowers/notes/fe8-map-format.md` for the format.
 
+### Terrain tiles
+
+The map viewers draw custom maps with real FE8 terrain tiles when they are installed,
+and fall back to the simple drawn terrain otherwise. One-time setup, after Generate
+Maps: put `Feaws Tileset Collection.zip` at the repo root and double-click
+**Build Tilesets.cmd** (or run `node --no-warnings tools/assetgen/tilesets.ts path/to/zip`).
+It copies only the `FE 8/*.png` sheets into `assets/tilesets/fe8/` (gitignored; see
+`assets/tilesets/CREDITS.md`) and learns from the real FE8 chapters which tile goes
+next to which terrain. In the scenario viewer, the Tileset dropdown swaps sheets; a map
+can pick its own with `"tileset": "Fort"` in its JSON. FE8 chapter encounters show the
+chapter's own map image.
+
+### Map sprites
+
+The scenario viewer draws units as the original FE8 map sprites (idle animation, enemies
+in the game's red palette, greyed once they have acted) when they are installed, and
+falls back to class tokens otherwise. The sprites are not committed: save the standing
+sheets listed in `assets/mapsprites/CREDITS.md` from the FEUniverse
+[FE-Repo](https://github.com/Klokinator/FE-Repo) into `assets/mapsprites/` under the
+local names shown there. `data/mapsprites.json` maps each class to its sheet. The
+Sprites dropdown switches between map sprites, portraits and class tokens.
+
 ## See it in action
 
 Every clip is the real project, recorded with Readmotion. Nothing is mocked up.

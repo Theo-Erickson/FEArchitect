@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { extractTerrain, TERRAIN_COUNT } from "./terraindata.ts";
+import { extractTerrain, terrainName, TERRAIN_COUNT } from "./terraindata.ts";
 
 const OFF = (addr: number) => addr - 0x08000000;
 const put = (rom: Uint8Array, addr: number, bytes: number[]) => rom.set(bytes, OFF(addr));
@@ -31,4 +31,24 @@ test("extractTerrain reads the FE8 terrain tables, 255 move cost becomes null", 
   });
   assert.equal(defs[3].moveCost.foot, null); // 255 -> null
   assert.equal(defs[3].moveCost.fly, 1);
+});
+
+test("terrainName follows the fireemblem8u terrain id enum", () => {
+  // Spot checks against include/constants/terrains.h and the ROM stats they imply.
+  assert.equal(terrainName(1), "Plains");
+  assert.equal(terrainName(2), "Road");
+  assert.equal(terrainName(10), "Fort");
+  assert.equal(terrainName(12), "Forest");    // foot 2, avoid 20
+  assert.equal(terrainName(13), "Thicket");   // impassable, avoid 30
+  assert.equal(terrainName(15), "Desert");
+  assert.equal(terrainName(16), "River");
+  assert.equal(terrainName(17), "Mountain");  // foot 4, cav 6, avoid 30
+  assert.equal(terrainName(18), "Peak");      // impassable, avoid 40
+  assert.equal(terrainName(21), "Sea");
+  assert.equal(terrainName(22), "Lake");
+  assert.equal(terrainName(26), "Wall");
+  assert.equal(terrainName(38), "Cliff");
+  assert.equal(terrainName(64), "Mast");
+  assert.equal(terrainName(44), "Terrain 44"); // unnamed placeholder id
+  for (let id = 0; id < TERRAIN_COUNT; id++) assert.ok(terrainName(id).length > 0);
 });

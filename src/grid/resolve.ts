@@ -35,6 +35,9 @@ export function validateTerrainDefs(raw: any): Record<string, TerrainDef> {
       if (!(c === null || typeof c === "number")) throw new Error(`Terrain ${id} moveCost.${mt} must be number or null`);
     }
     if (typeof d.avoid !== "number" || typeof d.def !== "number") throw new Error(`Terrain ${id} needs numeric avoid and def`);
+    if (d.fe8 !== undefined && !(Array.isArray(d.fe8) && d.fe8.every((n: unknown) => Number.isInteger(n)))) {
+      throw new Error(`Terrain ${id} fe8 must be an array of integer FE8 terrain ids`);
+    }
     out[id] = d as TerrainDef;
   }
   return out;
@@ -79,7 +82,9 @@ export function resolveMap(raw: any, terrainDefs: Record<string, TerrainDef>): R
       return id;
     });
   });
-  return { id: raw.id, width, height: raw.tiles.length, terrain };
+  const out: ResolvedMap = { id: raw.id, width, height: raw.tiles.length, terrain };
+  if (typeof raw.tileset === "string") out.tileset = raw.tileset;
+  return out;
 }
 
 function buildUnit(
@@ -95,7 +100,7 @@ function buildUnit(
   if (!Array.isArray(ref.at) || ref.at.length !== 2) throw new Error(`${side} needs an "at": [x, y]`);
   const ai: AiKind = ref.ai === "stationary" ? "stationary" : "aggressive";
   const { unit, skills } = resolveUnitStats(rawUnit, cls, skillDefs);
-  return { id: ref.unit, side, unit, weapon: weapon as WeaponDef, cls, ai, pos: { x: ref.at[0], y: ref.at[1] }, hp: unit.hp, level: rawUnit.level, skills, portrait: rawUnit.portrait };
+  return { id: ref.unit, side, unit, weapon: weapon as WeaponDef, cls, classId: rawUnit.class, ai, pos: { x: ref.at[0], y: ref.at[1] }, hp: unit.hp, level: rawUnit.level, skills, portrait: rawUnit.portrait };
 }
 
 export function resolveGridEncounter(

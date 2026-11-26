@@ -16,6 +16,9 @@ export interface TerrainDef {
   flyRes?: number;
   heal?: number;        // HP restored when ending a turn here (fort, throne)
   healsStatus?: boolean; // whether the tile also cures status
+  // FE8 terrain ids whose map chips can draw this terrain, in preference order. Only
+  // custom terrains use it (FE8 chapter terrain is already FE8 ids).
+  fe8?: number[];
 }
 
 export interface ClassDef {
@@ -53,6 +56,7 @@ export interface ResolvedMap {
   width: number;
   height: number;
   terrain: string[][]; // terrain[y][x] = terrain id
+  tileset?: string;     // preferred FE8 tileset sheet name for custom maps (display only)
 }
 
 export type Side = "player" | "enemy";
@@ -65,6 +69,7 @@ export interface GridUnit {
   unit: UnitDef;
   weapon: WeaponDef;
   cls: ClassDef;
+  classId: string; // key of cls in the class table (map-sprite lookup)
   ai: AiKind;      // player defaults to "aggressive" but is normally human-driven
   pos: TileVec;
   hp: number;      // current HP
