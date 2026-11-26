@@ -7,7 +7,7 @@ export const TILE_COLORS: Record<string, string> = {
 };
 
 // Deterministic 0..1 variation from tile coordinates and a salt.
-function vary(x: number, y: number, salt: number): number {
+export function vary(x: number, y: number, salt: number): number {
   const h = (Math.imul(x + 1, 73856093) ^ Math.imul(y + 1, 19349663) ^ Math.imul(salt + 1, 83492791)) >>> 0;
   return (h % 1000) / 1000;
 }
@@ -86,4 +86,25 @@ export function unitSprite(kind: string, cx: number, cy: number, s: number, hp: 
   // foot
   const token = `<circle cx="${cx}" cy="${cy}" r="${S(18)}" fill="${color}" stroke="#0006" stroke-width="${S(1.5)}"/>`;
   return `${token}<text x="${cx}" y="${cy + S(5)}" font-size="${S(14)}" fill="#fff" text-anchor="middle" font-family="system-ui" font-weight="600">${hp}</text>`;
+}
+
+// The board's terrain: an optional chip backdrop image (one <image> for the whole
+// map), plus today's coloured rect and SVG motif for every tile the backdrop does not
+// cover. With no backdrop this is exactly the placeholder look.
+export function terrainLayer(
+  terrain: string[][], tile: number, backdrop: { href: string; covered: boolean[][] } | null,
+): string {
+  const h = terrain.length, w = terrain[0]?.length ?? 0;
+  let svg = backdrop
+    ? `<image href="${backdrop.href}" x="0" y="0" width="${w * tile}" height="${h * tile}" preserveAspectRatio="none" style="image-rendering:pixelated" pointer-events="none"/>`
+    : "";
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (backdrop?.covered[y]?.[x]) continue;
+      const id = terrain[y][x], px = x * tile, py = y * tile;
+      svg += `<rect x="${px}" y="${py}" width="${tile}" height="${tile}" fill="${TILE_COLORS[id] ?? "#c9cfd6"}" stroke="#00000022"/>`;
+      svg += terrainSprite(id, px, py, tile, x, y);
+    }
+  }
+  return svg;
 }

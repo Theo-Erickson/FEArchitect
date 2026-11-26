@@ -7,6 +7,28 @@ const ROM_BASE = 0x08000000;
 export const TERRAIN_COUNT = 65;
 const IMPASSABLE = 255;
 
+// In-game style label per terrain id, indexed per the fireemblem8u decomp's enum
+// (include/constants/terrains.h, TERRAIN_NONE = 0x00 .. TERRAIN_MAST = 0x40) and
+// cross-checked against the ROM stats (12 Forest foot 2, 17 Mountain foot 4 / cav 6,
+// 18 Peak impassable avoid 40, ...). Ids 0x2C and 0x2E have no known name and fall
+// back to "Terrain N".
+export const TERRAIN_NAMES: Readonly<Record<number, string>> = {
+  0: "--", 1: "Plains", 2: "Road", 3: "Village", 4: "Village", 5: "House",
+  6: "Armory", 7: "Vendor", 8: "Arena", 9: "C.Room", 10: "Fort", 11: "Gate",
+  12: "Forest", 13: "Thicket", 14: "Sand", 15: "Desert", 16: "River",
+  17: "Mountain", 18: "Peak", 19: "Bridge", 20: "Bridge", 21: "Sea", 22: "Lake",
+  23: "Floor", 24: "Floor", 25: "Fence", 26: "Wall", 27: "Wall", 28: "Rubble",
+  29: "Pillar", 30: "Door", 31: "Throne", 32: "Chest", 33: "Chest", 34: "Roof",
+  35: "Gate", 36: "Church", 37: "Ruins", 38: "Cliff", 39: "Ballista",
+  40: "Longbow", 41: "Killerbow", 42: "Ship", 43: "Ship", 45: "Stairs",
+  47: "Glacier", 48: "Arena", 49: "Valley", 50: "Fence", 51: "Snag",
+  52: "Bridge", 53: "Sky", 54: "Deeps", 55: "Ruins", 56: "Inn", 57: "Barrel",
+  58: "Bone", 59: "Dark", 60: "Water", 61: "Gunnels", 62: "Deck", 63: "Brace",
+  64: "Mast",
+};
+
+export const terrainName = (id: number): string => TERRAIN_NAMES[id] ?? `Terrain ${id}`;
+
 const A = {
   footCost: 0x0880b849, cavCost: 0x0880bad3, flyCost: 0x0880bb96,
   avo: 0x0880c479, avoFly: 0x0880c53c, def: 0x0880c4ba, defFly: 0x0880c57d,

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveMap, resolveScenario } from "./resolve.ts";
+import { resolveMap, resolveScenario, validateTerrainDefs } from "./resolve.ts";
 
 const SC_TERRAIN: any = { plains: { name: "Plains", moveCost: { foot: 1, cav: 1, fly: 1 }, avoid: 0, def: 0 } };
 const SC_CLASSES: any = {
@@ -78,4 +78,19 @@ test("resolveScenario records each unit's class id for sprite lookup", () => {
   ] }, SC_UNITS, SC_WEAPONS, SC_TERRAIN, SC_CLASSES, SC_MAP, SC_SKILLS);
   assert.equal(sc.units[0].classId, "paladin");
   assert.equal(sc.units[1].classId, "infantry");
+});
+
+test("validateTerrainDefs accepts an fe8 id list and rejects a bad one", () => {
+  const base = { name: "Plains", avoid: 0, def: 0, moveCost: { foot: 1, cav: 1, fly: 1 } };
+  assert.deepEqual(validateTerrainDefs({ plains: { ...base, fe8: [1, 2] } }).plains.fe8, [1, 2]);
+  assert.equal(validateTerrainDefs({ plains: base }).plains.fe8, undefined);
+  assert.throws(() => validateTerrainDefs({ plains: { ...base, fe8: 1 } }), /fe8/);
+  assert.throws(() => validateTerrainDefs({ plains: { ...base, fe8: [1.5] } }), /fe8/);
+});
+
+test("resolveMap carries an optional tileset name on legend maps", () => {
+  const m = resolveMap({ id: "s", tileset: "Fort", legend: { ".": "1" }, tiles: ["."] }, defs);
+  assert.equal(m.tileset, "Fort");
+  assert.equal(resolveMap({ id: "s", legend: { ".": "1" }, tiles: ["."] }, defs).tileset, undefined);
+  assert.equal(resolveMap({ id: "s", tileset: 3, legend: { ".": "1" }, tiles: ["."] }, defs).tileset, undefined);
 });

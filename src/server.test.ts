@@ -42,6 +42,13 @@ test("staticAllowed permits the known roots and rejects traversal", () => {
 });
 
 test("staticAllowed serves map-sprite sheets", () => {
-  assert.equal(staticAllowed("assets/mapsprites/fe8-map-sprites.png"), true);
+  assert.equal(staticAllowed("assets/mapsprites/paladin.png"), true);
   assert.equal(staticAllowed("assets/mapsprites/../../package.json"), false);
+});
+
+test("staticAllowed serves the terrain tileset folder", () => {
+  assert.equal(staticAllowed("assets/tilesets/fe8/index.json"), true);
+  assert.equal(staticAllowed("assets/tilesets/fe8/plains.png"), true);
+  assert.equal(staticAllowed("assets/tilesets/../../base/FE8_Clean.gba"), false);
+  assert.equal(staticAllowed("assets/other/x.png"), false);
 });

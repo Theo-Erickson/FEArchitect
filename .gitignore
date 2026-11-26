@@ -18,3 +18,11 @@ assets/reference/
 # Fan-ripped GBA map-sprite sheets (not committed); only the credits note is tracked
 assets/mapsprites/*
 !assets/mapsprites/CREDITS.md
+# FE8 terrain tileset sheets (fan-ripped art, see assets/tilesets/CREDITS.md) and the
+# ROM-derived chip index: local only
+assets/tilesets/**
+!assets/tilesets/CREDITS.md
+# The fan tileset zip if kept at the repo root, and the tools' scratch folders
+/Feaws Tileset Collection.zip
+.tileset-tmp/
+.map-tmp/

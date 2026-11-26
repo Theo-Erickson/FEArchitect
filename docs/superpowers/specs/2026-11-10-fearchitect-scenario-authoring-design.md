@@ -1,7 +1,7 @@
 # FEArchitect MCP Scenario Authoring
 
 Date: 2026-11-10
-Status: Draft, awaiting review
+Status: Approved for planning
 Author: Claude (Opus 5.5) with Theo (Technical Game Designer)
 
 ## Prose and code conventions
@@ -110,12 +110,12 @@ otherwise `data/terrain.json` and `maps/<map>.json`. Classes are always
 `{ ...sim-classes, ...data/classes.json }`. The viewer's `fetchScenario` and the Node
 loader both call it, so they cannot drift.
 
-### Component 2: Node scenario loader (`mcp/scenarioload.ts`)
+### Component 2: Node project store (`mcp/store.ts`)
 
-`loadScenarioData(root, enc)` reads the files named by `scenarioSources` plus units,
-weapons, and skills, and returns the raw inputs for `resolveScenario`.
-`resolveScenarioOnDisk(root, enc)` returns the `ResolvedScenario`. Used by every
-scenario handler.
+`resolveScenarioOnDisk(root, enc)` reads the files named by `scenarioSources` plus
+units, weapons, classes, and skills, and returns the `ResolvedScenario`. The store also
+holds the shared JSON read and atomic write helpers, `loadClassesAll` (FE8 sim classes
+under custom classes), `resolveMapOnDisk`, and `readScenario`. Used by every handler.
 
 ### Component 3: Placement checker (`src/grid/scenariocheck.ts`, pure)
 
@@ -138,23 +138,28 @@ Resolution failures (unknown unit, weapon, class, skill, map) are thrown by
 ### Component 4: Map and scenario text views (`mcp/describe.ts`, pure)
 
 - `describeMap(map, terrainDefs)`: an ASCII grid with x rulers on top and y rulers on
-  the left. Each terrain id present gets one printable character (most common terrain
-  `.`, then letters assigned in order of frequency). A legend lists, for each character,
+  the left. Each terrain id present gets one punctuation character from a fixed pool
+  (most common terrain `.`, then `,`, `:`, `;` and so on in order of frequency; the
+  busiest FE8 chapter has 17 terrain types, the pool has 28). A legend lists, for each character,
   the terrain name, def/avoid, heal, and move cost for foot, cav, and fly (`-` for
   impassable). Also returns width and height.
 - `describeScenario(sc, problems)`: the same grid with units overlaid (player units
-  `1..9` then `A..`, enemy units lowercase `a..`, with a key mapping marker to unit id),
+  `A..Z`, enemy units `a..z` then `0..9`, `@` for overflow or a shared tile, with a key
+  mapping marker to unit id),
   a unit table (id, side, unit name, class, level, hp/str/mag/skl/spd/lck/def/res,
   weapon, ai, position), and the problems list.
 
 Text output is the MCP's way to see the map. It is deterministic, which makes it easy
 to test.
 
-### Component 5: MCP handlers and tools (`mcp/handlers.ts`, `mcp/toolspecs.ts`)
+### Component 5: MCP handlers and tools (`mcp/handlers.ts`, `mcp/scenariohandlers.ts`, `mcp/toolspecs.ts`)
+
+The new scenario tools live in `mcp/scenariohandlers.ts` so `handlers.ts` stays small;
+`set_unit`, `list`, and `get` changes stay in `handlers.ts`.
 
 | Tool | Behavior |
 |---|---|
-| `set_unit(id, fields)` | Merge `fields` into the unit; a `null` value deletes that field. Validate: flat form via `validateUnit`; authored form (has `bases` or `growths`, or no flat `hp`) via `computeStatblock` against the merged custom plus FE8 classes and the skills table (unknown class or skill is an error). Write on success, return the merged unit and its computed statblock. |
+| `set_unit(id, fields)` | Merge `fields` into the unit; a `null` value deletes that field. Validate: flat form via `validateUnit`; authored form (has `bases` or `growths`, or no flat `hp`) via `computeStatblock` against the merged custom plus FE8 classes and the skills table (unknown class or skill is an error). Write on success, return `{ unit, stats }`: the merged record and its computed statblock. |
 | `set_scenario(id, spec)` | Normalize (set `id`, `terrain` from map prefix, assign placement ids), resolve, run `checkScenario`. Any error: throw with every problem listed. Else write, return `describe_scenario` output and the viewer link `/src/game/scenario.html?s=<id>`. |
 | `place_unit(scenario, placement)` | Read scenario, replace the placement with the same `id` or append, then the same path as `set_scenario`. |
 | `remove_unit(scenario, id)` | Read scenario, remove the placement (error if absent), then the same path as `set_scenario`. |
@@ -199,7 +204,7 @@ over file names and parsed contents so it can be unit tested without a server.
 ```
 MCP client ──> mcp/server.ts ──> toolspecs ──> handlers
                                               │
-            scenarioload (Node fs) ──> scenarioSources ──> resolveScenario ──> checkScenario
+            store (Node fs)        ──> scenarioSources ──> resolveScenario ──> checkScenario
                                               │                                   │
                                      describe (text views)           writeJsonAtomic ──> encounters/<id>.json
                                                                                           │

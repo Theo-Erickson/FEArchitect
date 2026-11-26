@@ -29,7 +29,7 @@ export function safeConfigPath(p: string): boolean {
 export function staticAllowed(p: string): boolean {
   if (p.includes("..")) return false;
   const norm = normalize(p).replace(/\\/g, "/");
-  return ["src/", "data/", "encounters/", "maps/", "assets/reference/", "assets/mapsprites/"].some((root) => norm.startsWith(root));
+  return ["src/", "data/", "encounters/", "maps/", "assets/reference/", "assets/mapsprites/", "assets/tilesets/"].some((root) => norm.startsWith(root));
 }
 
 // Convert a TypeScript module to browser ready JavaScript by stripping types.

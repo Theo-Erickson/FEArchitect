@@ -101,6 +101,14 @@ export const TOOLS: Tool[] = [
     prereqs: [ROM], launcher: "launchers/Generate Maps.cmd",
   },
   {
+    id: "tilesets", name: "Build Tilesets", group: "Assets",
+    summary: "Imports the FE8 terrain tile sheets and learns which tile FE8 puts where.",
+    when: "Once, after Generate Maps, with Feaws Tileset Collection.zip at the repo root.",
+    script: ["tools/assetgen/tilesets.ts"],
+    prereqs: [ROM, CLI, { label: "Chapter maps (run Generate Maps)", path: "assets/reference/fe8/maps.json" }],
+    launcher: "launchers/Build Tilesets.cmd",
+  },
+  {
     id: "anims", name: "Cache Animations", group: "Assets",
     summary: "Pre-generates every battle animation GIF so the Animations tab is instant.",
     when: "Optional. Run it once when you have a few minutes; it skips what is cached.",
