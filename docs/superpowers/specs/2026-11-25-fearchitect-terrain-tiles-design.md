@@ -42,13 +42,13 @@ scenario viewer drawing FE8 chapter maps as grey boxes.
 
 ## Components
 
-
+### 1. Sheet import (step 1 of `tools/assetgen/tilesets.ts`)
 
 `node tools/assetgen/tilesets.ts [zip]` first copies the FE8 sheets into
 `assets/tilesets/fe8/`.
 
 - A minimal zip reader (`tools/assetgen/zipread.ts`, pure): reads the end-of-central-directory
-  record and the central directory, and returns entries `{ name, method, data }`. It
+  record and the central directory, and returns entries `{ name, method, read() }`, inflating only when read. It
   supports stored (0) and deflate (8) via `node:zlib` `inflateRawSync`, and throws on
   anything else or on encrypted entries.
 - Only entries whose name matches `FE 8/<basename>.png` are written. The output name is
@@ -59,7 +59,7 @@ scenario viewer drawing FE8 chapter maps as grey boxes.
   step from the original basename list, which the import writes to
   `assets/tilesets/fe8/sheets.json` as `[{ "name": "Castle Blue", "file": "castle-blue.png" }]`.
 
-
+### 2. Chip index (step 2 of `tools/assetgen/tilesets.ts`)
 
 The same command then builds the index (needs `base/FE8_Clean.gba`, the FEBuilder CLI and
 the chapter PNGs from `mapgen.ts`). For every FE8 chapter in `assets/reference/fe8/maps.json`:
