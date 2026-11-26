@@ -7,7 +7,7 @@ export const TILE_COLORS: Record<string, string> = {
 };
 
 // Deterministic 0..1 variation from tile coordinates and a salt.
-function vary(x: number, y: number, salt: number): number {
+export function vary(x: number, y: number, salt: number): number {
   const h = (Math.imul(x + 1, 73856093) ^ Math.imul(y + 1, 19349663) ^ Math.imul(salt + 1, 83492791)) >>> 0;
   return (h % 1000) / 1000;
 }
