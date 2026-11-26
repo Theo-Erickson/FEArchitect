@@ -4,7 +4,8 @@
 import { resolveScenario } from "../grid/resolve.ts";
 import { computeMatchup } from "../combat.ts";
 import { terrainMod } from "../grid/terrain.ts";
-import { terrainSprite, unitSprite, TILE_COLORS } from "../grid/render.ts";
+import { unitSprite, terrainLayer } from "../grid/render.ts";
+import { loadTilesetIndex, pickSheet, tileBackdrop, type SheetInfo, type Backdrop } from "./tilebackdrop.ts";
 import { weaponRange, manhattan } from "../grid/range.ts";
 import { tileKey } from "../grid/movement.ts";
 import {
@@ -26,6 +27,13 @@ let sel: GridUnit | null = null; // selected player unit this phase
 let moved = false;               // the selected unit has repositioned, now may attack or wait
 let busy = false;                // true while the enemy AI runs
 let spriteMode: "portrait" | "class" = "portrait"; // toggle: portrait face vs class token
+let chapterPng = "";                    // FE8 chapter encounters: the ROM-rendered map image
+let sheets: SheetInfo[] | null = null;  // indexed terrain tilesets, null when not installed
+let tilesetName = "";                   // "" = placeholder SVG terrain
+let backdrop: Backdrop | null = null;   // composed chips for the current map and sheet
+let backdropToken = 0;                  // ignores stale backdrop loads
+const tilesetSel = document.getElementById("tileset") as HTMLSelectElement;
+const tilesetLabel = document.getElementById("tilesetlabel")!;
 
 async function fetchJson(url: string, fallback?: any): Promise<any> {
   try { const r = await fetch(url); if (!r.ok) return fallback; return await r.json(); }
@@ -36,6 +44,7 @@ async function fetchScenario(path: string): Promise<ResolvedScenario> {
   const enc = await fetch(path).then((r) => r.json());
   const fe8 = enc.terrain === "fe8";
   const mapId = String(enc.map).replace(/^fe8-/, "");
+  chapterPng = fe8 ? `/assets/reference/fe8/maps/${mapId}.png` : "";
   const [units, weapons, custom, fe8cls, skills, terrain] = await Promise.all([
     fetchJson("/data/units.json"), fetchJson("/data/weapons.json"), fetchJson("/data/classes.json"),
     fetchJson("/assets/reference/fe8/sim-classes.json", {}), fetchJson("/data/skills.json", {}),
@@ -92,13 +101,9 @@ function render(): void {
   const w = g.map.width * TILE, h = g.map.height * TILE;
   board.setAttribute("width", String(w)); board.setAttribute("height", String(h)); board.setAttribute("viewBox", `0 0 ${w} ${h}`);
   let svg = "";
-  for (let y = 0; y < g.map.height; y++) {
-    for (let x = 0; x < g.map.width; x++) {
-      const id = g.map.terrain[y][x], px = x * TILE, py = y * TILE;
-      svg += `<rect x="${px}" y="${py}" width="${TILE}" height="${TILE}" fill="${TILE_COLORS[id] ?? "#c9cfd6"}" stroke="#00000022"/>`;
-      svg += terrainSprite(id, px, py, TILE, x, y);
-    }
-  }
+  svg += chapterPng
+    ? `<image href="${chapterPng}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" style="image-rendering:pixelated" pointer-events="none"/>`
+    : terrainLayer(g.map.terrain, TILE, backdrop);
   if (sel && !moved) {
     for (const key of reachableFor(g, sel.id)) {
       const [x, y] = key.split(",").map(Number);
@@ -229,6 +234,27 @@ document.getElementById("endturn")!.addEventListener("click", () => {
   void runEnemyPhase();
 });
 
+// Show the Tileset picker for custom maps when tilesets are installed, and select the
+// map's own sheet (or the default).
+function syncTilesetControl(): void {
+  const show = !!sheets && !chapterPng;
+  tilesetLabel.hidden = !show;
+  if (!show) { tilesetName = ""; return; }
+  tilesetName = pickSheet(sheets!, scRaw.map.tileset)?.name ?? "";
+  tilesetSel.value = tilesetName;
+}
+
+async function refreshBackdrop(): Promise<void> {
+  const token = ++backdropToken;
+  backdrop = null;
+  const info = sheets && !chapterPng && tilesetName ? sheets.find((s) => s.name === tilesetName) : undefined;
+  if (!info) return;
+  const b = await tileBackdrop(scRaw.map, scRaw.terrainDefs, info);
+  if (token !== backdropToken) return; // a newer map or sheet was chosen meanwhile
+  backdrop = b;
+  render();
+}
+
 function start(): void {
   g = createMultiGame(scRaw, 1);
   clearSel(); busy = false;
@@ -245,9 +271,21 @@ document.getElementById("spritemode")!.addEventListener("change", (e) => {
 
 async function boot(): Promise<void> {
   const sel2 = document.getElementById("enc") as HTMLSelectElement;
-  sel2.addEventListener("change", async () => { scRaw = await fetchScenario(sel2.value); start(); });
+  sel2.addEventListener("change", async () => {
+    scRaw = await fetchScenario(sel2.value);
+    syncTilesetControl(); start(); void refreshBackdrop();
+  });
   scRaw = await fetchScenario(sel2.value);
+  sheets = await loadTilesetIndex();
+  if (sheets) {
+    tilesetSel.innerHTML = `<option value="">Placeholder (SVG)</option>` +
+      sheets.map((s) => `<option value="${esc(s.name)}">${esc(s.name)}</option>`).join("");
+  }
+  syncTilesetControl();
   start();
+  void refreshBackdrop();
 }
+
+tilesetSel.addEventListener("change", () => { tilesetName = tilesetSel.value; render(); void refreshBackdrop(); });
 
 boot();
