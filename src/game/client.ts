@@ -58,7 +58,7 @@ async function fetchGridEncounter(path: string) {
 
 async function refreshBackdrop(): Promise<void> {
   const token = ++backdropToken;
-  backdrop = null;
+  backdrop = null; if (!busy) render(); // drop the previous map backdrop at once
   if (isChapter) return;
   const sheets = await loadTilesetIndex();
   const info = sheets ? pickSheet(sheets, g.enc.map.tileset) : null;

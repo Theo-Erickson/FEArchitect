@@ -246,7 +246,7 @@ function syncTilesetControl(): void {
 
 async function refreshBackdrop(): Promise<void> {
   const token = ++backdropToken;
-  backdrop = null;
+  backdrop = null; render(); // drop the previous map/sheet backdrop at once
   const info = sheets && !chapterPng && tilesetName ? sheets.find((s) => s.name === tilesetName) : undefined;
   if (!info) return;
   const b = await tileBackdrop(scRaw.map, scRaw.terrainDefs, info);
@@ -286,6 +286,6 @@ async function boot(): Promise<void> {
   void refreshBackdrop();
 }
 
-tilesetSel.addEventListener("change", () => { tilesetName = tilesetSel.value; render(); void refreshBackdrop(); });
+tilesetSel.addEventListener("change", () => { tilesetName = tilesetSel.value; void refreshBackdrop(); });
 
 boot();
